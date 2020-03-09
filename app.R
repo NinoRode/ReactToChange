@@ -5,6 +5,8 @@ library(readxl)
 
 server <- shinyServer(function(input, output, session) {
 
+    # OAsistent <- reactive(list("Lucija Metelko", "Ana Ljubi"))
+
     read_a_file <- function(a_file){
         mesec_z <- colnames(read_xlsx(a_file, range = "D3:D3", col_types = "numeric"))
         mesec_k <- colnames(read_xlsx(a_file, range = "D4:D4"))
@@ -24,14 +26,22 @@ server <- shinyServer(function(input, output, session) {
 
     # Initiate your table
     # mes_df <- data.frame("datum" = numeric(), "dan" = character(), "st_ur" = numeric(), "zacetek" = numeric(), "konec" = numeric(), "odsotnost" = character(), "mesec" = character())
-    wrk_dir <- "LucijaMetelko-feb-20/"
-    # while(wrk_dir == "") wrk_dir <- readline("Kateri direktorij?")
+    # wrk_dir <- "LucijaMetelko-feb-20/"
+    # # while(wrk_dir == "") wrk_dir <- readline("Kateri direktorij?")
+    #
+    # directory <- paste("/home/nino/Dokumenti/Matjaz/OA", wrk_dir, sep = "/")
+    #
+    # setwd(directory)
+    # mes_df <- read_a_file("10-16feb20LucijaMetelko.xlsx")
 
-    directory <- paste("/home/nino/Dokumenti/Matjaz/OA", wrk_dir, sep = "/")
+    mes_df <- reactive({data.frame("datum" = seq(input$teden, by = "day", length.out = 7),
+                                   "zacetek" = rep(8, 7),
+                                   "konec" = rep(14, 7),
+                                   "odsotnost" = rep("", 7),
+                                   "delovni čas" = rep(8, 7))
+        })
 
-    setwd(directory)
-    mes_df <- read_a_file("10-16feb20LucijaMetelko.xlsx")
-    previous <- reactive({mes_df})
+    previous <- mes_df
 
     Trigger_orders <- reactive({
         if(is.null(input$hotable1)){return(previous())}
@@ -42,8 +52,13 @@ server <- shinyServer(function(input, output, session) {
     })
     output$hotable1 <- renderHotable({Trigger_orders()}, readOnly = F)
     # You can see the changes you made
-    output$tbl = DT::renderDataTable(Trigger_orders())
 })
 
-ui <- basicPage(mainPanel(column(6,hotable("hotable1")),column(6,DT::dataTableOutput('tbl'))))
+ui <- fluidPage(
+    selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
+    dateInput("teden", "Izberi teden:",
+              format = "DD, dd. M. yyyy",
+              language = "sl",
+              weekstart = 1),
+    hotable("hotable1"))
 shinyApp(ui, server)
