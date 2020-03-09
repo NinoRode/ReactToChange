@@ -38,7 +38,9 @@ server <- shinyServer(function(input, output, session) {
     mes_df$dan <- weekdays( mes_df$datum)
     mes_df$zacetek <- c(rep(8, 5), NA, NA)
     mes_df$konec <- c(rep(14, 5), NA, NA)
-    mes_df$odsotnost <- rep("", 7)
+    mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
+                               labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
+                               ordered = TRUE)
     mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
 
     previous <- reactive({mes_df})
