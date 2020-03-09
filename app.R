@@ -34,12 +34,11 @@ server <- shinyServer(function(input, output, session) {
     # setwd(directory)
     # mes_df <- read_a_file("10-16feb20LucijaMetelko.xlsx")
     zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 1
-    mes_df <- reactive({data.frame("datum" = seq(zac_tedna, by = "day", length.out = 7),
+    mes_df <- data.frame("datum" = seq(zac_tedna, by = "day", length.out = 7),
                                    "zacetek" = rep(8, 7),
                                    "konec" = rep(14, 7),
                                    "odsotnost" = rep("", 7),
                                    "delovni čas" = rep(8, 7))
-        })
 
     previous <- reactive({mes_df})
 
