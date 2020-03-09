@@ -49,7 +49,8 @@ server <- shinyServer(function(input, output, session) {
         if(is.null(input$hotable1)){return(previous())}
         else if(!identical(previous(),input$hotable1)){
             # hot.to.df function will convert your updated table into the dataframe
-            as.data.frame(hot.to.df(input$hotable1))
+            previous <- as.data.frame(hot.to.df(input$hotable1))
+            previous
         }
     })
     output$hotable1 <- renderHotable({Trigger_orders()}, readOnly = F)
