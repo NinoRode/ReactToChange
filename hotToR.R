@@ -11,15 +11,23 @@ ui = shinyUI(fluidPage(
 
 server=function(input,output){
 
-  DF=data.frame(Code=c(1,2,3),Amount=c(NA,NA,NA))
-  DF[is.na(DF)] <- ""
+  zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 1
+  mes_df <- data.frame("datum" = seq(zac_tedna, by = "day", length.out = 7))
+  mes_df$dan <- weekdays( mes_df$datum)
+  mes_df$zacetek <- c(rep(8, 5), NA, NA)
+  mes_df$konec <- c(rep(14, 5), NA, NA)
+  mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
+                             labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
+                             ordered = TRUE)
+  mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
+  mes_df[is.na(mes_df)] <- ""
 
-  output$hot=renderRHandsontable(rhandsontable(DF,readOnly=F))
+  output$hot=renderRHandsontable(rhandsontable(mes_df, readOnly=F))
 
   observeEvent(input$enter, {
-    DF=hot_to_r(input$hot)
-    DF[DF == ""] <- NA
-    print(DF)
+    mes_df=hot_to_r(input$hot)
+    # mes_df[mes_df == ""] <- NA
+    print(mes_df)
   })
 }
 
