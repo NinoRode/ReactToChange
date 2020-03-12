@@ -26,6 +26,10 @@ server=function(input,output){
 
   output$hot <- renderRHandsontable(teden())
 
+  observe({
+
+    })
+
   observeEvent(input$enter, {
 
     mes_df <- hot_to_r(input$hot)
