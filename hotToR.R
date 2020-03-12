@@ -22,14 +22,14 @@ server=function(input,output){
   mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
   mes_df[is.na(mes_df)] <- ""
 
-  output$hot=renderRHandsontable(rhandsontable(mes_df, readOnly=F))
+  output$hot=renderRHandsontable(hot_col(rhandsontable(mes_df, readOnly=F), "odsotnost", allowInvalid = FALSE))
 
   observeEvent(input$enter, {
     mes_df=hot_to_r(input$hot)
-    # mes_df[mes_df == ""] <- NA
     print(mes_df)
   })
 }
+
 
 shinyApp(ui = ui, server = server)
 
