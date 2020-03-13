@@ -22,7 +22,7 @@ server=function(input,output){
   mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
   mes_df[is.na(mes_df)] <- ""
 
-  teden <- reactive({hot_col(rhandsontable(mes_df, readOnly=F), "odsotnost", allowInvalid = FALSE)})
+  teden <- reactiveVal({hot_col(rhandsontable(mes_df, readOnly=F), "odsotnost", allowInvalid = FALSE)})
 
   output$hot <- renderRHandsontable(teden())
 
