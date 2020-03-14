@@ -139,3 +139,4 @@ mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
 mes_df[is.na(mes_df)] <- ""
 
 editTable(mes_df)
+

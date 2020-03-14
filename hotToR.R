@@ -1,5 +1,6 @@
 library(shiny)
 library(rhandsontable)
+library(data.table)
 
 ui = shinyUI(fluidPage(
   fluidRow(wellPanel(
@@ -20,25 +21,43 @@ server=function(input,output){
                              labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
                              ordered = TRUE)
   mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
-  mes_df[is.na(mes_df)] <- ""
 
-  teden <- reactiveVal({hot_col(rhandsontable(mes_df, readOnly=F), "odsotnost", allowInvalid = FALSE)})
-  ta_teden <- reactiveVal({mes_df})
 
-  output$hot <- renderRHandsontable(teden())
 
-  observe({
-    if (!is.null(input$hot)) {
-      ta_teden() <- hot_to_r(input$hot)
-      ta_teden()$zacetek <- as.integer(ta_teden()$zacetek)
-      ta_teden()$konec <- as.integer(ta_teden()$konec)
-      ta_teden()$delovni_cas <- as.integer(ta_teden()$delovni_cas)
-      ta_teden()$delovni_cas <-  ta_teden()$konec -  ta_teden()$zacetek
+  teden <- reactive({
 
+    datacopy <- NULL
+
+    #For initial data upload
+    if(is.null(input$hot)){
+      datacopy <- mes_df
+      datacopy=data.table(datacopy)
+
+    }else{
+      datacopy = hot_to_r(input$hot)
+
+      #If there is change in data
+      if(!is.null(input$hot$changes$changes)){
+
+        row.no <- unlist(input$hot$changes$changes)[1]
+        col.no <- unlist(input$hot$changes$changes)[2]
+        new.val <- unlist(input$hot$changes$changes)[4]
+        #If the changed value is mpg or cyl
+        if(col.no == 2 || col.no == 3){
+          datacopy[(row.no+1), 6] = datacopy[(row.no+1), 4] - datacopy[(row.no+1), 3]
+        }
+      }
     }
-    output$hot <- renderRHandsontable(teden())
+
+    datacopy
+
   })
 
+  output$hot=renderRHandsontable({
+
+    rhandsontable(teden())
+
+  })
   observeEvent(input$enter, {
 
     mes_df <- hot_to_r(input$hot)
