@@ -23,12 +23,21 @@ server=function(input,output){
   mes_df[is.na(mes_df)] <- ""
 
   teden <- reactiveVal({hot_col(rhandsontable(mes_df, readOnly=F), "odsotnost", allowInvalid = FALSE)})
+  ta_teden <- reactiveVal({mes_df})
 
   output$hot <- renderRHandsontable(teden())
 
   observe({
+    if (!is.null(input$hot)) {
+      ta_teden() <- hot_to_r(input$hot)
+      ta_teden()$zacetek <- as.integer(ta_teden()$zacetek)
+      ta_teden()$konec <- as.integer(ta_teden()$konec)
+      ta_teden()$delovni_cas <- as.integer(ta_teden()$delovni_cas)
+      ta_teden()$delovni_cas <-  ta_teden()$konec -  ta_teden()$zacetek
 
-    })
+    }
+    output$hot <- renderRHandsontable(teden())
+  })
 
   observeEvent(input$enter, {
 
