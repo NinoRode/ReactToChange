@@ -19,8 +19,9 @@ ui = shinyUI(fluidPage(
 server=function(input,output){
 
   zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
-  mes_df <- data.frame("datum" = seq(zac_tedna, by = "day", length.out = 7))
-  mes_df$dan <- weekdays( mes_df$datum)
+  mes_df <- data.frame("dat" = seq(zac_tedna, by = "day", length.out = 7))
+  mes_df$dan <- weekdays( mes_df$dat)
+  mes_df$datum <- as.character(mes_df$dat, "%e. %b. %Y")
   mes_df$zacetek <- c(rep(8, 5), NA, NA)
   mes_df$konec <- c(rep(14, 5), NA, NA)
   mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
@@ -30,13 +31,14 @@ server=function(input,output){
 
 
 
+  # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   teden <- reactive({
 
     datacopy <- NULL
 
     #For initial data upload
     if(is.null(input$hot)){
-      datacopy <- mes_df
+      datacopy <- mes_df[, -1]
       datacopy=data.table(datacopy)
 
     }else{
@@ -66,7 +68,8 @@ server=function(input,output){
   })
   observeEvent(input$enter, {
 
-    mes_df <- hot_to_r(input$hot)
+    mes_df <- cbind(mes_df$dat, hot_to_r(input$hot))
+    names(mes_df)[1] <- "dat"
     print(mes_df)
   })
 }
