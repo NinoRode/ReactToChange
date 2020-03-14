@@ -11,7 +11,7 @@ ui = shinyUI(fluidPage(
             weekstart = 1),
   fluidRow(wellPanel(
     rHandsontableOutput("hot"),
-    actionButton(inputId="enter",label="enter")
+    actionButton(inputId="enter",label="Shrani urnik")
   ))
 ))
 
@@ -70,7 +70,9 @@ server=function(input,output){
 
     mes_df <- cbind(mes_df$dat, hot_to_r(input$hot))
     names(mes_df)[1] <- "dat"
-    print(mes_df)
+    ime <- isolate(unlist(strsplit(input$OA, " ")))
+    save_dir <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", isolate(input$teden)))
+    write.csv2(mes_df, save_dir)
   })
 }
 
