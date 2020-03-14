@@ -3,6 +3,12 @@ library(rhandsontable)
 library(data.table)
 
 ui = shinyUI(fluidPage(
+  selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
+  dateInput("teden", "Izberi teden:",
+            value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+            format = "DD, dd. M. yyyy",
+            language = "sl",
+            weekstart = 1),
   fluidRow(wellPanel(
     rHandsontableOutput("hot"),
     actionButton(inputId="enter",label="enter")
@@ -12,7 +18,7 @@ ui = shinyUI(fluidPage(
 
 server=function(input,output){
 
-  zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 1
+  zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
   mes_df <- data.frame("datum" = seq(zac_tedna, by = "day", length.out = 7))
   mes_df$dan <- weekdays( mes_df$datum)
   mes_df$zacetek <- c(rep(8, 5), NA, NA)
@@ -55,7 +61,7 @@ server=function(input,output){
 
   output$hot=renderRHandsontable({
 
-    rhandsontable(teden())
+    rhandsontable(teden(), dateFormat = "L")
 
   })
   observeEvent(input$enter, {

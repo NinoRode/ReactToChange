@@ -1,7 +1,7 @@
-rm(list = ls())
 library(shiny)
 library(rhandsontable)
 library(readxl)
+library(shinysky)
 
 server <- shinyServer(function(input, output, session) {
 
