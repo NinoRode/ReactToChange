@@ -1,5 +1,6 @@
 library(shiny)
 library(rhandsontable)
+library(openxlsx)
 library(data.table)
 
 ui = shinyUI(fluidPage(
