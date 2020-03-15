@@ -32,7 +32,7 @@ server=function(input,output){
 
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
-  teden <- reactive({
+  za_teden <- reactive({
 
     datacopy <- NULL
 
@@ -63,7 +63,7 @@ server=function(input,output){
 
   output$hot=renderRHandsontable({
 
-    rhandsontable(teden(), dateFormat = "L")
+    rhandsontable(za_teden(), dateFormat = "L")
 
   })
   observeEvent(input$enter, {
