@@ -18,17 +18,20 @@ ui = shinyUI(fluidPage(
 
 server=function(input,output){
 
+  # correct <- function(x = NULL) {return(ifelse((x == "" || is.na(x) || is.null(x)), 0, x))}
+
   zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
   mes_df <- data.frame("dat" = seq(zac_tedna, by = "day", length.out = 7))
   mes_df$dan <- weekdays( mes_df$dat)
   mes_df$datum <- as.character(mes_df$dat, "%e. %b. %Y")
-  mes_df$zacetek <- c(rep(8, 5), NA, NA)
-  mes_df$konec <- c(rep(14, 5), NA, NA)
+  mes_df$prihod <- c(rep(8, 5), NA, NA)
+  mes_df$odhod <- c(rep(14, 5), NA, NA)
+  mes_df$ure <-  mes_df$odhod -  mes_df$prihod
+  mes_df$ure[is.na(mes_df$ure)] <-  0
   mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
                              labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
                              ordered = TRUE)
-  mes_df$delovni_cas <-  mes_df$konec -  mes_df$zacetek
-
+  ne_dela <- c("dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje")
 
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
@@ -47,12 +50,20 @@ server=function(input,output){
       #If there is change in data
       if(!is.null(input$hot$changes$changes)){
 
-        row.no <- unlist(input$hot$changes$changes)[1]
-        col.no <- unlist(input$hot$changes$changes)[2]
+        row.no <- as.numeric(unlist(input$hot$changes$changes)[1])
+        col.no <- as.numeric(unlist(input$hot$changes$changes)[2])
         new.val <- unlist(input$hot$changes$changes)[4]
         #If the changed value is mpg or cyl
-        if(col.no == 2 || col.no == 3){
-          datacopy[(row.no+1), 6] = datacopy[(row.no+1), 4] - datacopy[(row.no+1), 3]
+        if(is.numeric(new.val) && (col.no == 2 || col.no == 3)){
+          datacopy[(row.no+1), 5] <- datacopy[(row.no+1), 4] - datacopy[(row.no+1), 3]
+        }
+        else {
+          datacopy[(row.no+1), 5] <- NA
+        }
+
+        if(new.val %in% ne_dela) {
+          datacopy[(row.no+1), 4] <- NA
+          datacopy[(row.no+1), 3] <- NA
         }
       }
     }
@@ -63,7 +74,7 @@ server=function(input,output){
 
   output$hot=renderRHandsontable({
 
-    rhandsontable(za_teden(), dateFormat = "L")
+    rhandsontable(za_teden())
 
   })
   observeEvent(input$enter, {
