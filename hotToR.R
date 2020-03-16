@@ -3,6 +3,94 @@ library(rhandsontable)
 library(openxlsx)
 library(data.table)
 
+saveXcllWb <- function(OA, mes_df, file_name) {
+  meseca <- c("januarja", "februarja", "marca", "aprila", "maja", "junija", "julija", "avgusta", "septrembra", "oktobra", "novembra", "decembra")
+
+  ## set default border Colour and style
+
+  wb <- createWorkbook()
+  options("openxlsx.borderColour" = "#4F80BD")
+  options("openxlsx.borderStyle" = "thin")
+  options("openxlsx.halign" = "center")
+  options("openxlsx.borderStyle" = "thin")
+  modifyBaseFont(wb, fontSize = 10, fontName = "Arial Narrow")
+
+  tabHeadStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+                              border = "bottom")
+  tabStyle <- createStyle(halign = "center")
+  tabFootStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+                              border = "top")
+  infoStyle <- createStyle(textDecoration = "bold")
+
+  addWorksheet(wb, sheetName = paste(OA, Sys.Date()))
+
+  writeData(wb, sheet = 1, x = t(c("Uporabnik:", "Matjaž Metelko")),
+            startCol = 1,
+            startRow = 1,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+
+  writeData(wb, sheet = 1, x = "Urnik dela:",
+            startCol = 2,
+            startRow = 3,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+  writeData(wb, sheet = 1, x = c("od: ", "do: "),
+            startCol = 3,
+            startRow = 3,
+            colNames = FALSE, rowNames = TRUE
+  )
+
+  od_dne <- paste(format(mes_df$dat[1], "%d."), meseca[as.numeric(format(mes_df$dat[1], "%m"))])
+  do_dne <- paste(format(mes_df$dat[7], "%d."), meseca[as.numeric(format(mes_df$dat[7], "%m"))])
+  writeData(wb, sheet = 1, x = c(od_dne, do_dne),
+            startCol = 4,
+            startRow = 3,
+            colNames = FALSE, rowNames = TRUE
+  )
+
+
+  writeData(wb, sheet = 1, x = c(format(mes_df$dat[1], "%Y"), format(mes_df$dat[7], "%Y")),
+            startCol = 5,
+            startRow = 3,
+            colNames = FALSE, rowNames = TRUE
+  )
+
+  writeData(wb, sheet = 1, x = t(c("za:", OA)),
+            startCol = 2,
+            startRow = 6,
+            colNames = FALSE, rowNames = TRUE
+  )
+
+  writeDataTable(wb, sheet = 1, x = mes_df[-1],
+                 startCol = 1,
+                 startRow = 8,
+                 colNames = TRUE, rowNames = FALSE,
+                 withFilter = FALSE,
+                 firstColumn = TRUE
+  )
+
+  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", sum(mes_df$ure, na.rm = TRUE))),
+            startCol = 2,
+            startRow = 16,
+            colNames = FALSE, rowNames = TRUE
+  )
+
+  addStyle(wb, sheet = 1, infoStyle, rows = 1:6, cols = 1:6, gridExpand = TRUE)
+  addStyle(wb, sheet = 1, tabHeadStyle, rows = 8, cols = 1:6)
+  addStyle(wb, sheet = 1, tabFootStyle, rows = 16, cols = 1:6)
+
+  # setColWidths(wb, sheet = 1, cols = 1:6, widths = "auto")
+  setColWidths(wb, sheet = 1, cols = 1:6, widths = c(11, 14, 10, 10, 10, 10))
+
+
+  saveWorkbook(wb, file = file_name, overwrite = TRUE)
+}
+
+saveXcllWb(OA, mes_df)
+
 ui = shinyUI(fluidPage(
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
   dateInput("teden", "Izberi teden:",
@@ -18,8 +106,6 @@ ui = shinyUI(fluidPage(
 
 
 server=function(input,output){
-
-  # correct <- function(x = NULL) {return(ifelse((x == "" || is.na(x) || is.null(x)), 0, x))}
 
   zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
   mes_df <- data.frame("dat" = seq(zac_tedna, by = "day", length.out = 7))
@@ -83,8 +169,10 @@ server=function(input,output){
     mes_df <- cbind(mes_df$dat, hot_to_r(input$hot))
     names(mes_df)[1] <- "dat"
     ime <- isolate(unlist(strsplit(input$OA, " ")))
-    save_dir <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", isolate(input$teden)))
-    write.csv2(mes_df, save_dir)
+    file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", isolate(input$teden)))
+
+    saveXcllWb(isolate(input$OA), mes_df, file_name)
+
   })
 }
 
