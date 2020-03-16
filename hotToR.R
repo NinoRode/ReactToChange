@@ -3,7 +3,8 @@ library(rhandsontable)
 library(openxlsx)
 library(data.table)
 
-saveXcllWb <- function(OA, mes_df, file_name) {
+saveXcllWb <- function(OA, mes_df, file_name = NULL) {
+
   meseca <- c("januarja", "februarja", "marca", "aprila", "maja", "junija", "julija", "avgusta", "septrembra", "oktobra", "novembra", "decembra")
 
   ## set default border Colour and style
@@ -40,7 +41,7 @@ saveXcllWb <- function(OA, mes_df, file_name) {
   writeData(wb, sheet = 1, x = c("od: ", "do: "),
             startCol = 3,
             startRow = 3,
-            colNames = FALSE, rowNames = TRUE
+            colNames = FALSE, rowNames = FALSE
   )
 
   od_dne <- paste(format(mes_df$dat[1], "%d."), meseca[as.numeric(format(mes_df$dat[1], "%m"))])
@@ -48,23 +49,23 @@ saveXcllWb <- function(OA, mes_df, file_name) {
   writeData(wb, sheet = 1, x = c(od_dne, do_dne),
             startCol = 4,
             startRow = 3,
-            colNames = FALSE, rowNames = TRUE
+            colNames = FALSE, rowNames = FALSE
   )
 
 
   writeData(wb, sheet = 1, x = c(format(mes_df$dat[1], "%Y"), format(mes_df$dat[7], "%Y")),
             startCol = 5,
             startRow = 3,
-            colNames = FALSE, rowNames = TRUE
+            colNames = FALSE, rowNames = FALSE
   )
 
   writeData(wb, sheet = 1, x = t(c("za:", OA)),
-            startCol = 2,
+            startCol = 3,
             startRow = 6,
-            colNames = FALSE, rowNames = TRUE
+            colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(wb, sheet = 1, x = mes_df[-1],
+  writeDataTable(wb, sheet = 1, x = mes_df[, -1],
                  startCol = 1,
                  startRow = 8,
                  colNames = TRUE, rowNames = FALSE,
@@ -72,24 +73,24 @@ saveXcllWb <- function(OA, mes_df, file_name) {
                  firstColumn = TRUE
   )
 
-  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", sum(mes_df$ure, na.rm = TRUE))),
+  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", "", sum(mes_df$ure, na.rm = TRUE))),
             startCol = 2,
             startRow = 16,
-            colNames = FALSE, rowNames = TRUE
+            colNames = FALSE, rowNames = FALSE
   )
 
   addStyle(wb, sheet = 1, infoStyle, rows = 1:6, cols = 1:6, gridExpand = TRUE)
   addStyle(wb, sheet = 1, tabHeadStyle, rows = 8, cols = 1:6)
   addStyle(wb, sheet = 1, tabFootStyle, rows = 16, cols = 1:6)
 
-  # setColWidths(wb, sheet = 1, cols = 1:6, widths = "auto")
   setColWidths(wb, sheet = 1, cols = 1:6, widths = c(11, 14, 10, 10, 10, 10))
 
-
-  saveWorkbook(wb, file = file_name, overwrite = TRUE)
+  if(!is.null(file_name)){
+    saveWorkbook(wb, file = file_name, overwrite = TRUE)
+  }
 }
 
-saveXcllWb(OA, mes_df)
+# saveXcllWb(OA, mes_df)
 
 ui = shinyUI(fluidPage(
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
@@ -168,10 +169,15 @@ server=function(input,output){
 
     mes_df <- cbind(mes_df$dat, hot_to_r(input$hot))
     names(mes_df)[1] <- "dat"
+
     ime <- isolate(unlist(strsplit(input$OA, " ")))
     file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", isolate(input$teden)))
+    xl_name <- paste(file_name, ".xlsx", sep = "")
+    csv_name <- paste(file_name, ".csv", sep = "")
 
-    saveXcllWb(isolate(input$OA), mes_df, file_name)
+    saveXcllWb(isolate(input$OA), mes_df, xl_name)
+
+    write.csv2(mes_df, csv_name)
 
   })
 }
