@@ -90,8 +90,6 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
   }
 }
 
-# saveXcllWb(OA, mes_df)
-
 ui = shinyUI(fluidPage(
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
   dateInput("teden", "Izberi teden:",
@@ -109,18 +107,32 @@ ui = shinyUI(fluidPage(
 server=function(input,output){
 
   zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
-  mes_df <- data.frame("dat" = seq(zac_tedna, by = "day", length.out = 7))
-  mes_df$dan <- weekdays( mes_df$dat)
-  mes_df$datum <- as.character(mes_df$dat, "%e. %b. %Y")
-  mes_df$prihod <- c(rep(8, 5), NA, NA)
-  mes_df$odhod <- c(rep(14, 5), NA, NA)
-  mes_df$ure <-  mes_df$odhod -  mes_df$prihod
-  mes_df$ure[is.na(mes_df$ure)] <-  0
-  mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
-                             labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
-                             ordered = TRUE)
-  ne_dela <- c("dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje")
 
+  prepare_df <- function(last_data, zac_tedna = NULL) {
+    if (file.exists(last_data)) {
+      mes_df <- read.csv2(last_data)
+      mes_df$dat = seq(zac_tedna, by = "day", length.out = 7)
+    }
+    else {
+      mes_df <- data.frame("dat" = seq(zac_tedna, by = "day", length.out = 7))
+      mes_df$dan <- weekdays( mes_df$dat)
+      mes_df$datum <- as.character(mes_df$dat, "%e. %b. %Y")
+      mes_df$prihod <- c(rep(8, 5), NA, NA)
+      mes_df$odhod <- c(rep(16, 5), NA, NA)
+      mes_df$ure <-  mes_df$odhod -  mes_df$prihod
+      mes_df$ure[is.na(mes_df$ure)] <-  0
+      mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
+                                 labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
+                                 ordered = TRUE)
+    }
+    return(mes_df)
+  }
+
+  ne_dela <- c("dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
+
+  ime <- isolate(unlist(strsplit(input$OA, " ")))
+  file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", "last.csv"))
+  mes_df <- prepare_df(file_name, zac_tedna)
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   za_teden <- reactive({
@@ -178,7 +190,7 @@ server=function(input,output){
     saveXcllWb(isolate(input$OA), mes_df, xl_name)
 
     write.csv2(mes_df, csv_name)
-
+    system2("cp", args = c(" -f", csv_name, paste(ime[1], "_", ime[2], "_", "last.csv", sep = "")))
   })
 }
 
