@@ -91,13 +91,11 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
 }
 
 flatten_df <- function(df, lead_txt, which_vars) {
-  print(which_vars)
   n <- names(df)[which_vars]
-  print(n)
-  ddf <- df[which_vars]
+  dnevi <- df[, ..lead_txt]
+  ddf <- df[, ..which_vars]
   vr <- as.vector(t(ddf))
-
-  names(vr) <- sapply(t(df[lead_txt]), function (x) paste(x, "_", n, sep = ""))
+  names(vr) <- sapply(t(dnevi), function (x) paste(x, "_", n, sep = ""))
   skup_df <- data.frame(t(vr))
   return(skup_df)
 }
@@ -187,8 +185,14 @@ server=function(input,output){
 
     saveXcllWb(isolate(input$OA), mes_df, xl_name)
 
-    fl_df <- cbind(dat = isolate(input$teden), flatten_df(mes_df, 2, c(4, 5, 7)))
-    write.csv2(fl_df, csv_name, append = TRUE)
+    tdf <- flatten_df(mes_df, 2, c(4, 5, 7))
+    fl_df <- cbind(dat = isolate(input$teden), tdf)
+    if (file.exists(csv_name)) {
+      tmp <- read.csv2(csv_name, as.is = TRUE)
+      tmp$dat <- as.Date(tmp$dat)
+      fl_df <- rbind(tmp, fl_df)
+    }
+    write.csv2(fl_df, csv_name, row.names = FALSE)
 
   })
 }
