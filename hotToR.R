@@ -90,7 +90,17 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
   }
 }
 
-# saveXcllWb(OA, mes_df)
+flatten_df <- function(df, lead_txt, which_vars) {
+  print(which_vars)
+  n <- names(df)[which_vars]
+  print(n)
+  ddf <- df[which_vars]
+  vr <- as.vector(t(ddf))
+
+  names(vr) <- sapply(t(df[lead_txt]), function (x) paste(x, "_", n, sep = ""))
+  skup_df <- data.frame(t(vr))
+  return(skup_df)
+}
 
 ui = shinyUI(fluidPage(
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
@@ -113,11 +123,11 @@ server=function(input,output){
   mes_df$dan <- weekdays( mes_df$dat)
   mes_df$datum <- as.character(mes_df$dat, "%e. %b. %Y")
   mes_df$prihod <- c(rep(8, 5), NA, NA)
-  mes_df$odhod <- c(rep(14, 5), NA, NA)
+  mes_df$odhod <- c(rep(16, 5), NA, NA)
   mes_df$ure <-  mes_df$odhod -  mes_df$prihod
   mes_df$ure[is.na(mes_df$ure)] <-  0
-  mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
-                             labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
+  mes_df$opomba <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "PD", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
+                             labels = c("-", "počitek", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
                              ordered = TRUE)
   ne_dela <- c("dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje")
 
@@ -146,7 +156,7 @@ server=function(input,output){
           datacopy[(row.no+1), 5] <- datacopy[(row.no+1), 4] - datacopy[(row.no+1), 3]
         }
         else {
-          datacopy[(row.no+1), 5] <- NA
+          datacopy[(row.no+1), 5] <- 0
         }
 
         if(new.val %in% ne_dela) {
@@ -171,13 +181,14 @@ server=function(input,output){
     names(mes_df)[1] <- "dat"
 
     ime <- isolate(unlist(strsplit(input$OA, " ")))
-    file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", isolate(input$teden)))
-    xl_name <- paste(file_name, ".xlsx", sep = "")
+    file_name <- paste(getwd(), "/", ime[1], "_", ime[2], sep = "")
+    xl_name <- paste(file_name, "_", isolate(input$teden), ".xlsx", sep = "")
     csv_name <- paste(file_name, ".csv", sep = "")
 
     saveXcllWb(isolate(input$OA), mes_df, xl_name)
 
-    write.csv2(mes_df, csv_name)
+    fl_df <- cbind(dat = isolate(input$teden), flatten_df(mes_df, 2, c(4, 5, 7)))
+    write.csv2(fl_df, csv_name, append = TRUE)
 
   })
 }
