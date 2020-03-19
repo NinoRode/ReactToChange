@@ -121,8 +121,8 @@ server=function(input,output){
       mes_df$odhod <- c(rep(16, 5), NA, NA)
       mes_df$ure <-  mes_df$odhod -  mes_df$prihod
       mes_df$ure[is.na(mes_df$ure)] <-  0
-      mes_df$odsotnost <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
-                                 labels = c("-", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
+      mes_df$opombe <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "PD", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
+                                 labels = c("-", "počitek", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
                                  ordered = TRUE)
     }
     return(mes_df)
