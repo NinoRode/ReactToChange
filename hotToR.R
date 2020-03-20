@@ -2,6 +2,7 @@ library(shiny)
 library(rhandsontable)
 library(openxlsx)
 library(data.table)
+library(RSQLite)
 
 saveXcllWb <- function(OA, mes_df, file_name = NULL) {
 
@@ -181,7 +182,9 @@ server=function(input,output){
     ime <- isolate(unlist(strsplit(input$OA, " ")))
     file_name <- paste(getwd(), "/", ime[1], "_", ime[2], sep = "")
     xl_name <- paste(file_name, "_", isolate(input$teden), ".xlsx", sep = "")
-    csv_name <- paste(file_name, ".csv", sep = "")
+    sql_name <- paste(file_name, ".sqlite", sep = "")
+
+    urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
     saveXcllWb(isolate(input$OA), mes_df, xl_name)
 
@@ -192,7 +195,7 @@ server=function(input,output){
       tmp$dat <- as.Date(tmp$dat)
       fl_df <- rbind(tmp, fl_df)
     }
-    write.csv2(fl_df, csv_name, row.names = FALSE)
+    tryCatch()
 
   })
 }
