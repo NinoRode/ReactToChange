@@ -2,3 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+Lucija_Metelko.csv
+Lucija_Metelko.sqlite
+Lucija_Metelko_2020-03-23.xlsx
+create-xlsx-example.R
+flatten-example.R
+sqlite-example.R
+sqlite-example2.R
