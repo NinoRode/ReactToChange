@@ -41,10 +41,9 @@ build_teden <- function(df = NULL) {
   teden_df$ure <- teden_df$odhod - teden_df$prihod
   teden_df$ure[is.na(teden_df$ure)] <-  0
   teden_df$opomba <- factor(c(rep("-", 5), "sobota", "nedelja"),
-                            levels = c("-", "počitek", "sobota", "nedelja", "praznik",
-                                       "dopust", "bolniška", "izredni dopust",
-                                       "dodatni dopust", "izobraževanje"),
-                            ordered = TRUE)
+                            levels = c("-", "počitek", "bolniška", "dopust",
+                                       "sobota", "nedelja", "praznik",
+                                       "izobraževanje"))
   if (!is.null(df)) {
     teden_df$opomba <- factor(unlist(m[3]))
   }
@@ -262,14 +261,15 @@ server=function(input,output){
       mes_df$odhod <- c(rep(16, 5), NA, NA)
       mes_df$ure <-  mes_df$odhod -  mes_df$prihod
       mes_df$ure[is.na(mes_df$ure)] <-  0
-      mes_df$opombe <- factor(c(rep("-", 5), "SO", "NE"), levels = c("-", "PD", "SO", "NE", "P", "D", "B", "ID", "DD", "IZ"),
-                                 labels = c("-", "počitek", "sobota", "nedelja", "praznik", "dopust", "bolniška", "izredni dopust", "dodatni dopust", "izobraževanje"),
-                                 ordered = TRUE)
+      mes_df$opomba <- factor(c(rep("-", 5), "sobota", "nedelja"),
+                                levels = c("-", "počitek", "bolniška", "dopust",
+                                           "sobota", "nedelja", "praznik",
+                                           "izobraževanje"))
     }
     return(mes_df)
   }
 
-  ne_dela <- c("dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
+  ne_dela <- c("počitek", "sobota", "nedelja", "dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
 
   ime <- isolate(unlist(strsplit(input$OA, " ")))
   file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", "last.csv"))
@@ -285,7 +285,7 @@ server=function(input,output){
       datacopy <- mes_df[, -1]
       datacopy=data.table(datacopy)
 
-    }else{
+    } else {
       datacopy = hot_to_r(input$hot)
 
       #If there is change in data
@@ -294,18 +294,21 @@ server=function(input,output){
         row.no <- as.numeric(unlist(input$hot$changes$changes)[1])
         col.no <- as.numeric(unlist(input$hot$changes$changes)[2])
         new.val <- unlist(input$hot$changes$changes)[4]
-        #If the changed value is mpg or cyl
-        if(is.numeric(new.val) && (col.no == 2 || col.no == 3)){
-          datacopy[(row.no+1), 5] <- datacopy[(row.no+1), 4] - datacopy[(row.no+1), 3]
-        }
-        else {
-          datacopy[(row.no+1), 5] <- NA
-        }
 
+        # If nonworking day change work hours
         if(new.val %in% ne_dela) {
           datacopy[(row.no+1), 4] <- NA
           datacopy[(row.no+1), 3] <- NA
         }
+        #If the changed value is prihod or odhod
+
+        if(is.numeric(new.val) && (col.no == 2 || col.no == 3))
+          datacopy[(row.no+1), 6] <- "-"
+
+        datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
+        # else {
+        #   datacopy[(row.no+1), 5] <- 0
+        # }
       }
     }
 
@@ -313,9 +316,12 @@ server=function(input,output){
 
   })
 
+  hott <- reactive(rhandsontable(za_teden()))
   output$hot=renderRHandsontable({
 
-    rhandsontable(za_teden())
+    # rhandsontable(za_teden())
+
+    hot_validate_numeric(hott(), col = c(3, 4), min = 0, max = 24)
 
   })
   observeEvent(input$enter, {
