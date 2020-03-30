@@ -1,7 +1,7 @@
 library(shiny)
 library(rhandsontable)
 library(openxlsx)
-library(data.table)
+# library(data.table)
 library(RSQLite)
 
 flatten_teden <- function(df, lead_txt, which_vars) {
@@ -116,32 +116,6 @@ readData <- function(db, table, crit = "", sel_val = "") {
   df <- dbGetQuery(db, query)
   return(df)
 }
-
-##########################################
-##           VKLJUČI V SERVER           ##
-##########################################
-
-OA <- "Lucija Metelko"
-
-# zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
-
-# ime <- unlist(strsplit(OA, " "))
-# file_name <- paste(getwd(), "/", ime[1], "_", ime[2], sep = "")
-# sql_name <- paste(file_name, ".sqlite", sep = "")
-#
-# zt <- as.character(zac_tedna, "%d. %b. %Y")
-#
-# urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
-#
-# # fl_df <- buildTeden()
-# createTable(urnik_db, fl_df,  table_name, "dat")
-# replaceData(urnik_db, table_name, fl_df)
-#
-# n_db <- readData(urnik_db, table_name, "dat", zt)
-# n_db$pon_prihod <- 13
-# replaceData(urnik_db, table_name, n_db)
-
-##########################################
 
 saveXcllWb <- function(OA, mes_df, file_name = NULL) {
 
@@ -283,7 +257,7 @@ server=function(input,output){
     #For initial data upload
     if(is.null(input$hot)){
       datacopy <- mes_df[, -1]
-      datacopy=data.table(datacopy)
+      # datacopy=data.table(datacopy)
 
     } else {
       datacopy = hot_to_r(input$hot)
@@ -326,8 +300,10 @@ server=function(input,output){
   })
   observeEvent(input$enter, {
 
-    mes_df <- cbind(mes_df$dat, hot_to_r(input$hot))
-    names(mes_df)[1] <- "dat"
+    teden_df <-hot_to_r(input$hot)
+    tdf <- flatten_teden(teden_df, 1, c(3, 4, 6))
+    fl_df <- cbind(dat = as.character(zac_tedna, "%d. %b. %Y"), tdf)
+    fl_df$dat <- as.character(fl_df$dat)
 
     ime <- isolate(unlist(strsplit(input$OA, " ")))
     # file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", isolate(input$teden)))
