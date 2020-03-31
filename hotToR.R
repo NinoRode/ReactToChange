@@ -30,6 +30,8 @@ build_teden <- function(df = NULL) {
   } else {
     zac_tedna <- as.Date(df$dat,  "%d. %b. %Y")
   }
+
+
   tdn <- seq(zac_tedna, by = "day", length.out = 7)
   teden_df <- data.frame("dan" = weekdays(tdn))
   teden_df$datum <- as.character(tdn, "%e. %b. %Y")
@@ -40,8 +42,12 @@ build_teden <- function(df = NULL) {
   } else {
     m <- list(df[grepl("prihod", names(df))], df[grepl("odhod", names(df))], df[grepl("opomba", names(df))])
     teden_df$prihod <-unlist(m[1])
+    teden_df$prihod <- as.numeric(teden_df$prihod)
+
     teden_df$odhod <- unlist(m[2])
+    teden_df$odhod <- as.numeric(teden_df$odhod)
   }
+
   teden_df$ure <- teden_df$odhod - teden_df$prihod
   teden_df$ure[is.na(teden_df$ure)] <-  0
 
@@ -51,21 +57,27 @@ build_teden <- function(df = NULL) {
                                        "sobota", "nedelja", "praznik",
                                        "izobraževanje"))
   } else {
-    teden_df$opomba <- factor(unlist(m[3]))
+    teden_df$opomba <- factor(unlist(m[3]),
+                              levels = c("-", "počitek", "bolniška", "dopust",
+                                         "sobota", "nedelja", "praznik",
+                                         "izobraževanje"))
   }
 
   return(teden_df)
 }
 
-# Priprava podatkov tedna za vnos v SQLite bazo
-zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8      # Spravi v input in ga uporabljaj od tam
+# zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8      # Spravi v input in ga uporabljaj od tam
 
-teden_df <- build_teden()
-teden_df$opomba <- as.character(teden_df$opomba)
-tdf <- flatten_teden(teden_df, 1, c(3, 4, 6))                            # flatten reši argumentov
-fl_df <- cbind(dat = as.character(zac_tedna, "%d. %b. %Y"), tdf)
-fl_df$dat <- as.character(fl_df$dat)
+prepare_flat <- function(zt) {
+  # Priprava podatkov tedna za vnos v SQLite bazo
+  teden_df <- build_teden()
+  teden_df$opomba <- as.character(teden_df$opomba)
+  tdf <- flatten_teden(teden_df, 1, c(3, 4, 6))                            # flatten reši argumentov
+  fl_df <- cbind(dat = zt, tdf)
+  fl_df$dat <- as.character(fl_df$dat)
 
+  return(fl_df)
+}
 
 gsubAll <- function(string, to_replace_with, sep = "") {
   n <- ncol(to_replace_with)
@@ -119,7 +131,6 @@ readData <- function(db, table, crit = "", sel_val = "") {
   if (crit != "") crit <- sprintf("WHERE %s = '%s'", crit, sel_val)
   query <- sprintf("SELECT * FROM %s %s", table, crit)
   # Submit the query
-  print(query)
   df <- dbGetQuery(db, query)
   return(df)
 }
@@ -165,8 +176,10 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  od_dne <- paste(format(teden_df$dat[1], "%d."), meseca[as.numeric(format(teden_df$dat[1], "%m"))])
-  do_dne <- paste(format(teden_df$dat[7], "%d."), meseca[as.numeric(format(teden_df$dat[7], "%m"))])
+  prvi <- as.Date(teden_df$dat[1],  "%d. %b. %Y")
+  zadnji <- as.Date(teden_df$dat[7],  "%d. %b. %Y")
+  od_dne <- paste(format(prvi, "%d."), meseca[as.numeric(format(prvi, "%m"))])
+  do_dne <- paste(format(zadnji), meseca[as.numeric(format(zadnji, "%m"))])
   writeData(wb, sheet = 1, x = c(od_dne, do_dne),
             startCol = 4,
             startRow = 3,
@@ -174,7 +187,7 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
   )
 
 
-  writeData(wb, sheet = 1, x = c(format(teden_df$dat[1], "%Y"), format(teden_df$dat[7], "%Y")),
+  writeData(wb, sheet = 1, x = c(format(prvi, "%Y"), format(zadnji, "%Y")),
             startCol = 5,
             startRow = 3,
             colNames = FALSE, rowNames = FALSE
@@ -239,18 +252,22 @@ server=function(input,output){
   table_name <- paste(ime, collapse = "")
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
-  # zt <- as.character(zac_tedna(), "%d. %b. %Y")
+  zt <- as.character(isolate(zac_tedna()), "%d. %b. %Y")
 
   urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
-  if(!dbExistsTable(urnik_db, table_name))
+  if(!dbExistsTable(urnik_db, table_name)) {
+    fl_df <- prepare_flat(zt)
     createTable(urnik_db, fl_df,  table_name, "dat")
+    replaceData(urnik_db, table_name, fl_df)
+}
 
-  flat_df <- readData(urnik_db, "dat", as.character(zac_tedna(), "%d. %b. %Y")) # to je treba observat
+  flat_df <- readData(urnik_db, table_name, "dat", zt)
+
   if(is.null(flat_df))
-    teden_df <- build_df()
+    teden_df <- build_teden()
   else
-    teden_df <- build_df(flat_df)
+    teden_df <- build_teden(flat_df)
 
   dbDisconnect(urnik_db)
 
@@ -303,6 +320,7 @@ server=function(input,output){
   observeEvent(input$enter, {
 
     teden_df <-hot_to_r(input$hot)
+    teden_df$opomba <- as.character(teden_df$opomba)
     tdf <- flatten_teden(teden_df, 1, c(3, 4, 6))
     fl_df <- cbind(dat = as.character(zac_tedna(), "%d. %b. %Y"), tdf)
     fl_df$dat <- as.character(fl_df$dat)
