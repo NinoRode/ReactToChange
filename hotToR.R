@@ -21,14 +21,18 @@ flatten_teden <- function(df, lead_txt, which_vars) {
 }
 
 build_teden <- function(df = NULL) {
+  # Builds the table for display
+  # If no data frame is provided the table is built fro sratch,
+  # else it is built fro the data frame
+
   if (is.null(df)) {
-    tdn <- Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
+    zac_tedna <- Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
   } else {
-    tdn <- as.Date(df$dat,  "%d. %b. %Y")
+    zac_tedna <- as.Date(df$dat,  "%d. %b. %Y")
   }
-  teden_df <- data.frame("dat" = seq(tdn, by = "day", length.out = 7))
-  teden_df$dan <- weekdays( teden_df$dat)
-  teden_df$datum <- as.character(teden_df$dat, "%e. %b. %Y")
+  tdn <- seq(zac_tedna, by = "day", length.out = 7)
+  teden_df <- data.frame("dan" = weekdays(tdn))
+  teden_df$datum <- as.character(tdn, "%e. %b. %Y")
 
   if (is.null(df)) {
     teden_df$prihod <- c(rep(8, 5), NA, NA)
@@ -40,22 +44,25 @@ build_teden <- function(df = NULL) {
   }
   teden_df$ure <- teden_df$odhod - teden_df$prihod
   teden_df$ure[is.na(teden_df$ure)] <-  0
-  teden_df$opomba <- factor(c(rep("-", 5), "sobota", "nedelja"),
+
+  if (is.null(df)) {
+    teden_df$opomba <- factor(c(rep("-", 5), "sobota", "nedelja"),
                             levels = c("-", "počitek", "bolniška", "dopust",
                                        "sobota", "nedelja", "praznik",
                                        "izobraževanje"))
-  if (!is.null(df)) {
+  } else {
     teden_df$opomba <- factor(unlist(m[3]))
   }
+
   return(teden_df)
 }
 
 # Priprava podatkov tedna za vnos v SQLite bazo
-zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
+zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8      # Spravi v input in ga uporabljaj od tam
 
 teden_df <- build_teden()
 teden_df$opomba <- as.character(teden_df$opomba)
-tdf <- flatten_teden(teden_df, 2, c(4, 5, 7))
+tdf <- flatten_teden(teden_df, 1, c(3, 4, 6))                            # flatten reši argumentov
 fl_df <- cbind(dat = as.character(zac_tedna, "%d. %b. %Y"), tdf)
 fl_df$dat <- as.character(fl_df$dat)
 
@@ -117,7 +124,7 @@ readData <- function(db, table, crit = "", sel_val = "") {
   return(df)
 }
 
-saveXcllWb <- function(OA, mes_df, file_name = NULL) {
+saveXcllWb <- function(OA, teden_df, file_name = NULL) {
 
   meseca <- c("januarja", "februarja", "marca", "aprila", "maja", "junija", "julija", "avgusta", "septrembra", "oktobra", "novembra", "decembra")
 
@@ -158,8 +165,8 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  od_dne <- paste(format(mes_df$dat[1], "%d."), meseca[as.numeric(format(mes_df$dat[1], "%m"))])
-  do_dne <- paste(format(mes_df$dat[7], "%d."), meseca[as.numeric(format(mes_df$dat[7], "%m"))])
+  od_dne <- paste(format(teden_df$dat[1], "%d."), meseca[as.numeric(format(teden_df$dat[1], "%m"))])
+  do_dne <- paste(format(teden_df$dat[7], "%d."), meseca[as.numeric(format(teden_df$dat[7], "%m"))])
   writeData(wb, sheet = 1, x = c(od_dne, do_dne),
             startCol = 4,
             startRow = 3,
@@ -167,7 +174,7 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
   )
 
 
-  writeData(wb, sheet = 1, x = c(format(mes_df$dat[1], "%Y"), format(mes_df$dat[7], "%Y")),
+  writeData(wb, sheet = 1, x = c(format(teden_df$dat[1], "%Y"), format(teden_df$dat[7], "%Y")),
             startCol = 5,
             startRow = 3,
             colNames = FALSE, rowNames = FALSE
@@ -179,7 +186,7 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(wb, sheet = 1, x = mes_df[, -1],
+  writeDataTable(wb, sheet = 1, x = teden_df[, -1],
                  startCol = 1,
                  startRow = 8,
                  colNames = TRUE, rowNames = FALSE,
@@ -187,7 +194,7 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
                  firstColumn = TRUE
   )
 
-  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", "", sum(mes_df$ure, na.rm = TRUE))),
+  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", "", sum(teden_df$ure, na.rm = TRUE))),
             startCol = 2,
             startRow = 16,
             colNames = FALSE, rowNames = FALSE
@@ -204,6 +211,8 @@ saveXcllWb <- function(OA, mes_df, file_name = NULL) {
   }
 }
 
+############################# UI #############################
+
 ui = shinyUI(fluidPage(
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
   dateInput("teden", "Izberi teden:",
@@ -217,37 +226,33 @@ ui = shinyUI(fluidPage(
   ))
 ))
 
+########################## SEREVER ###########################
 
 server=function(input,output){
 
-  zac_tedna <-  Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
-
-  prepare_df <- function(last_data, zac_tedna = NULL) {
-    if (file.exists(last_data)) {
-      mes_df <- read.csv2(last_data)
-      mes_df$dat = seq(zac_tedna, by = "day", length.out = 7)
-    }
-    else {
-      mes_df <- data.frame("dat" = seq(zac_tedna, by = "day", length.out = 7))
-      mes_df$dan <- weekdays( mes_df$dat)
-      mes_df$datum <- as.character(mes_df$dat, "%e. %b. %Y")
-      mes_df$prihod <- c(rep(8, 5), NA, NA)
-      mes_df$odhod <- c(rep(16, 5), NA, NA)
-      mes_df$ure <-  mes_df$odhod -  mes_df$prihod
-      mes_df$ure[is.na(mes_df$ure)] <-  0
-      mes_df$opomba <- factor(c(rep("-", 5), "sobota", "nedelja"),
-                                levels = c("-", "počitek", "bolniška", "dopust",
-                                           "sobota", "nedelja", "praznik",
-                                           "izobraževanje"))
-    }
-    return(mes_df)
-  }
+  # zac_tedna <-  reactive(Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8)
+  zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
 
   ne_dela <- c("počitek", "sobota", "nedelja", "dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
 
   ime <- isolate(unlist(strsplit(input$OA, " ")))
-  file_name <- gsub(" ", "", paste(getwd(), "/", ime[1], "_", ime[2], "_", "last.csv"))
-  mes_df <- prepare_df(file_name, zac_tedna)
+  table_name <- paste(ime, collapse = "")
+  sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
+
+  # zt <- as.character(zac_tedna(), "%d. %b. %Y")
+
+  urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
+
+  if(!dbExistsTable(urnik_db, table_name))
+    createTable(urnik_db, fl_df,  table_name, "dat")
+
+  flat_df <- readData(urnik_db, "dat", as.character(zac_tedna(), "%d. %b. %Y")) # to je treba observat
+  if(is.null(flat_df))
+    teden_df <- build_df()
+  else
+    teden_df <- build_df(flat_df)
+
+  dbDisconnect(urnik_db)
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   za_teden <- reactive({
@@ -256,7 +261,7 @@ server=function(input,output){
 
     #For initial data upload
     if(is.null(input$hot)){
-      datacopy <- mes_df[, -1]
+      datacopy <- teden_df
       # datacopy=data.table(datacopy)
 
     } else {
@@ -292,17 +297,14 @@ server=function(input,output){
 
   hott <- reactive(rhandsontable(za_teden()))
   output$hot=renderRHandsontable({
-
-    # rhandsontable(za_teden())
-
     hot_validate_numeric(hott(), col = c(3, 4), min = 0, max = 24)
-
   })
+
   observeEvent(input$enter, {
 
     teden_df <-hot_to_r(input$hot)
     tdf <- flatten_teden(teden_df, 1, c(3, 4, 6))
-    fl_df <- cbind(dat = as.character(zac_tedna, "%d. %b. %Y"), tdf)
+    fl_df <- cbind(dat = as.character(zac_tedna(), "%d. %b. %Y"), tdf)
     fl_df$dat <- as.character(fl_df$dat)
 
     ime <- isolate(unlist(strsplit(input$OA, " ")))
@@ -312,9 +314,9 @@ server=function(input,output){
     sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
 
-    saveXcllWb(isolate(input$OA), mes_df, xl_name)
+    saveXcllWb(isolate(input$OA), teden_df, xl_name)
 
-    zt <- as.character(zac_tedna, "%d. %b. %Y")
+    zt <- as.character(zac_tedna(), "%d. %b. %Y")
 
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
@@ -323,10 +325,6 @@ server=function(input,output){
 
     replaceData(urnik_db, table_name, fl_df)
 
-    # n_db <- readData(urnik_db, table_name, "dat", zt)
-    # n_db$pon_prihod <- 13
-    # replaceData(urnik_db, table_name, n_db)
-    # system2("cp", args = c(" -f", csv_name, paste(ime[1], "_", ime[2], "_", "last.csv", sep = "")))
   })
 }
 
