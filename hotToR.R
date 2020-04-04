@@ -31,15 +31,14 @@ flatten_teden <- function(df) {
 
 build_teden <- function(df = NULL) {
   # Builds the table for display
-  # If no data frame is provided the table is built fro sratch,
-  # else it is built fro the data frame
+  # If no data frame is provided, the table is built from sratch,
+  # else it is built from the data frame
 
   if (is.null(df) || nrow(df) == 0) {
     zac_tedna <- Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
   } else {
     zac_tedna <- as.Date(df$dat,  "%d. %b. %Y")
   }
-  print(nrow(df))
 
   tdn <- seq(zac_tedna, by = "day", length.out = 7)
   teden_df <- data.frame("dan" = weekdays(tdn))
@@ -253,30 +252,35 @@ ui = shinyUI(fluidPage(
 
 server=function(input,output){
 
-  options(warn = -1)
-  zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
+  # options(warn = -1)
 
-  ne_dela <- c("prosto", "sobota", "nedelja", "dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
+  ne_delovni <- c("prosto", "sobota", "nedelja", "dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
+
+  zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
-  urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
+  flat_df <- reactive({
+    urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
-  zt <- as.character(isolate(zac_tedna()), "%d. %b. %Y")
-  tn <- isolate(table_name())
+    zt <- as.character(zac_tedna(), "%d. %b. %Y")
+    # tn <- isolate(table_name())
 
-  if(!dbExistsTable(urnik_db, tn)) {
-    fl_df <- prepare_flat(zt)
-    createTable(urnik_db, fl_df,  tn, "dat")
-    replaceData(urnik_db, tn, fl_df)
-}
+    if(!dbExistsTable(urnik_db, table_name())) {
+      fl_df <- prepare_flat(zt)
+      createTable(urnik_db, fl_df,  table_name(), "dat")
+      replaceData(urnik_db, table_name(), fl_df)
+    }
 
-  flat_df <- readData(urnik_db, tn, "dat", zt) ############### make flat_df reative or not
+    flat_df <- readData(urnik_db, table_name(), "dat", zt) ############### make flat_df reative or not
 
-  teden_df <- build_teden(flat_df)
+    dbDisconnect(urnik_db)
 
-  dbDisconnect(urnik_db)
+    flat_df
+  })
+
+  teden_df <- reactive(build_teden(flat_df()))
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   za_teden <- reactive({
@@ -285,7 +289,7 @@ server=function(input,output){
 
     #For initial data upload
     if(is.null(input$hot)) {
-      datacopy <- teden_df
+      datacopy <- teden_df()
       }
     else {
       datacopy = hot_to_r(input$hot)
@@ -298,7 +302,7 @@ server=function(input,output){
         new.val <- unlist(input$hot$changes$changes)[4]
 
         # If nonworking day change work hours
-        if(new.val %in% ne_dela) {
+        if(new.val %in% ne_delovni) {
           datacopy[(row.no+1), 4] <- NA
           datacopy[(row.no+1), 3] <- NA
         }
