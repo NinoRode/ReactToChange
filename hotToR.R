@@ -1,11 +1,15 @@
 library(shiny)
+library(reactlog)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
 
+# tell shiny to log all reactivity
+options(shiny.reactlog = TRUE)
+
 #########################################################################################################
-#    TO DO:
-# Osnova je fl_df. fl_df ora biti reative, odvisen od OA in datuma
+#
+# Osnova je fl_df. fl_df mora biti reative, odvisen od OA in datuma
 #       pri vsaki spremembi pogleda, ali je za ta datum in tega OA že bazi, če ni, ga pa nar'di
 #
 # Iz fl_df gradiš teden, iz tedna hot
@@ -220,22 +224,38 @@ ui = shinyUI(fluidPage(
             format = "DD, dd. M. yyyy",
             language = "sl",
             weekstart = 1),
-  tableOutput("tabela"),
   fluidRow(wellPanel(
-    rHandsontableOutput("hot"),
-    actionButton(inputId="enter",label="Shrani urnik")
-  ))
+    column(6,
+           rHandsontableOutput("hot"),
+           actionButton(inputId="enter",label="Shrani urnik")
+    ),
+
+    column(6,
+           textOutput("title"),
+           tableOutput("tabela")
+    )))
 ))
 
 ########################## SEREVER ###########################
 
-server=function(input,output){
+##############################################################
+# TODO:
+# observe ali menjaš OA ali teden:
+#   takrat:
+#     beri novo tabelo iz baze, če je ni, naredi default.
+#     zaženi hott z novo tabelo
+##############################################################
 
-  # options(warn = -1)
+server=function(input,output, session){
+
+  options(warn = -1)
 
   ne_delovni <- c("prosto", "sobota", "nedelja", "dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
 
   zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
+  observe(
+    updateDateInput(session, "teden", value = zac_tedna())
+    )
 
   zt <- Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
 
@@ -250,6 +270,7 @@ server=function(input,output){
                            stringsAsFactors = FALSE)
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
+  output$title <- renderText(c("Trenutna tabela: ", input$OA))
   output$tabela <- renderText(table_name())
 
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
@@ -259,10 +280,11 @@ server=function(input,output){
 
     zt <- as.character(zac_tedna(), "%d. %b. %Y")
 
-    if(!dbExistsTable(urnik_db, table_name())) {
+    if(!dbExistsTable(urnik_db, table_name()))
       createTable(urnik_db, default_df,  table_name(), "dat")
-      replaceData(urnik_db, table_name(), default_df)
-    }
+
+    replaceData(urnik_db, table_name(), default_df)
+
 
     fl_df <- readData(urnik_db, table_name(), "dat", zt) ############### make flat_df reative or not
 
@@ -270,9 +292,20 @@ server=function(input,output){
 
     fl_df
   })
-  output$tabela <- renderTable(flat_df())
 
-  teden_df <- reactive(build_teden(flat_df()))
+  teden_df <- reactive(
+    if (nrow(flat_df()) > 0)
+      build_teden(flat_df())
+    else
+      build_teden(default_df)
+  )
+
+  output$tabela <- renderTable(teden_df())
+
+  OA_changed <- reactiveVal(FALSE)
+  observeEvent(list(input$OA, input$teden), OA_changed(TRUE))
+  # observeEvent(za_teden, OA_changed(FALSE))
+
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   za_teden <- reactive({
@@ -280,32 +313,53 @@ server=function(input,output){
     datacopy <- NULL
 
     #For initial data upload
-    if(is.null(input$hot)) {
+    if(isolate(OA_changed()) || is.null(input$hot)) {
       datacopy <- teden_df()
-      }
+    }
     else {
       datacopy = hot_to_r(input$hot)
-
-      #If there is change in data
-      if(!is.null(input$hot$changes$changes)){
-
-        row.no <- as.numeric(unlist(input$hot$changes$changes)[1])
-        col.no <- as.numeric(unlist(input$hot$changes$changes)[2])
-        new.val <- unlist(input$hot$changes$changes)[4]
-
-        # If nonworking day change work hours
-        if(new.val %in% ne_delovni) {
-          datacopy[(row.no+1), 4] <- NA
-          datacopy[(row.no+1), 3] <- NA
-        }
-        #If the changed value is prihod or odhod
-
-        if(is.numeric(new.val) && (col.no == 2 || col.no == 3))
-          datacopy[(row.no+1), 6] <- "-"
-
-        datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
-      }
     }
+
+    #If there is change in data
+    if(!is.null(input$hot$changes$changes)){
+      if(is.null(input$hot$changes$changes[[1]][[3]]))
+        len.chg <- 3
+      else
+        len.chg <- 4
+      change.in.table <- matrix(unlist(input$hot$changes$changes), nrow = len.chg)
+      row.no <- as.numeric(change.in.table[1, ])
+      col.no <- as.numeric(change.in.table[2, ])
+      if(len.chg ==4) {
+      old.val <- change.in.table[3, ]
+      new.val <- change.in.table[4, ]
+      }
+      else {
+        old.val <- NULL
+        new.val <- change.in.table[3, ]
+      }
+
+      posit <- length(change.in.table) %/% len.chg
+
+      # If nonworking day change work hours
+      ifelse(new.val[posit] %in% ne_delovni,
+             {
+               datacopy[(row.no+1), 4] <- NA
+               datacopy[(row.no+1), 3] <- NA
+             },
+             {
+               identity(datacopy[(row.no+1), 4])
+               identity(datacopy[(row.no+1), 3])
+             }
+      )
+      #If the changed value is prihod or odhod
+
+      if(is.numeric(new.val) && (col.no == 2 || col.no == 3))
+        datacopy[(row.no+1), 6] <- "-"
+
+      datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
+    }
+
+    OA_changed(FALSE)
 
     datacopy
 
@@ -321,7 +375,7 @@ server=function(input,output){
                       col = 6, halign = "htRight"),
                     col = c(3, 4), min = 0, max = 24))
 
-  output$hot=renderRHandsontable({
+  output$hot <- renderRHandsontable({
     hott()
   })
 
@@ -348,10 +402,17 @@ server=function(input,output){
       createTable(urnik_db, fl_df,  ime(), "dat")
 
     replaceData(urnik_db, ime(), fl_df)
+    dbDisconnect(urnik_db)
 
   })
 }
 
+# app <- shinyApp(ui = ui, server = server)
+#
+# runApp(app)
+#
+#
+# reactlogShow()
 
 shinyApp(ui = ui, server = server)
 
