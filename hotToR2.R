@@ -1,19 +1,26 @@
 library(shiny)
-library(reactlog)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
+# library(reactlog)
 
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
 
 #########################################################################################################
-#
+# TO DO:
+# Začneš s pregledom podatkov
+#       trenutni teden je prikazan v tabeli
+#       selectInput 'Izberi teden' ti da spisek tednov v bazi, izbiraš lahko, katerega prikaže
+#         če izbereš teden, ki ga še ni, prikaži prazno tabelo
+# Urejanje začneš s pritiskom na gumb 'Uredi'
+#       izbrani teden se odpre v rhandsontable za urejanje
+# Urejanje končaš s pritiskom na gumb 'Shrani'
 # Osnova je fl_df. fl_df mora biti reative, odvisen od OA in datuma
 #       pri vsaki spremembi pogleda, ali je za ta datum in tega OA že bazi, če ni, ga pa nar'di
 #
-# Iz fl_df gradiš teden, iz tedna hot
-# hot obdeluješ in ga spraviš z gubom (tu narediš nov fl_df)
+# Iz fl_df gradiš teden in ga prikažeš, iz tedna gradiš hot, ko to zahteva gumb 'Uredi'
+# hot obdeluješ in ga spraviš z gubom 'Shrani' (šele tu naredi nov zapis v bazo)
 #########################################################################################################
 
 flatten_teden <- function(df) {
@@ -238,19 +245,11 @@ ui = shinyUI(fluidPage(
 
 ########################## SEREVER ###########################
 
-##############################################################
-# TODO:
-# observe ali menjaš OA ali teden:
-#   takrat:
-#     beri novo tabelo iz baze, če je ni, naredi default.
-#     zaženi hott z novo tabelo
-##############################################################
-
 server=function(input,output, session){
 
   options(warn = -1)
 
-  ne_delovni <- c("prosto", "praznik", "dopust", "sobota", "nedelja", "izobraževanje")
+  ne_delovni <- c("prosto", "praznik", "bolniška", "dopust", "sobota", "nedelja", "izobraževanje")
 
   zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
   observe(
@@ -283,10 +282,12 @@ server=function(input,output, session){
     if(!dbExistsTable(urnik_db, table_name()))
       createTable(urnik_db, default_df,  table_name(), "dat")
 
-    replaceData(urnik_db, table_name(), default_df)
 
+    fl_df <- readData(urnik_db, table_name(), "dat", zac_tedna())
 
-    fl_df <- readData(urnik_db, table_name(), "dat", zt) ############### make flat_df reative or not
+    if (nrow(fl_df()) == 0) {
+      fl_df <- default_df
+    }
 
     dbDisconnect(urnik_db)
 
@@ -294,14 +295,7 @@ server=function(input,output, session){
   })
 
   teden_df <- reactive({
-    if (nrow(flat_df()) > 0) {
-      ted_df <- build_teden(flat_df())
-    }
-    else {
-      ted_df <- build_teden(default_df)
-    }
-
-    ted_df
+    build_teden(flat_df())
   })
 
   output$tabela <- renderTable(teden_df())
