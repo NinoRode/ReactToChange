@@ -250,7 +250,7 @@ server=function(input,output, session){
 
   options(warn = -1)
 
-  ne_delovni <- c("prosto", "sobota", "nedelja", "dopust", "izredni dopust", "dodatni dopust", "izobraževanje")
+  ne_delovni <- c("prosto", "praznik", "dopust", "sobota", "nedelja", "izobraževanje")
 
   zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
   observe(
@@ -293,18 +293,18 @@ server=function(input,output, session){
     fl_df
   })
 
-  teden_df <- reactive(
-    if (nrow(flat_df()) > 0)
-      build_teden(flat_df())
-    else
-      build_teden(default_df)
-  )
+  teden_df <- reactive({
+    if (nrow(flat_df()) > 0) {
+      ted_df <- build_teden(flat_df())
+    }
+    else {
+      ted_df <- build_teden(default_df)
+    }
+
+    ted_df
+  })
 
   output$tabela <- renderTable(teden_df())
-
-  OA_changed <- reactiveVal(FALSE)
-  observeEvent(list(input$OA, input$teden), OA_changed(TRUE))
-  # observeEvent(za_teden, OA_changed(FALSE))
 
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
@@ -313,7 +313,7 @@ server=function(input,output, session){
     datacopy <- NULL
 
     #For initial data upload
-    if(isolate(OA_changed()) || is.null(input$hot)) {
+    if(is.null(input$hot)) {
       datacopy <- teden_df()
     }
     else {
@@ -358,8 +358,6 @@ server=function(input,output, session){
 
       datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
     }
-
-    OA_changed(FALSE)
 
     datacopy
 
