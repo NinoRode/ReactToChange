@@ -312,11 +312,11 @@ server=function(input,output, session){
     datacopy <- NULL
 
     #For initial data upload
-    if(OA_change() || is.null(input$hot)) {
+    if(isolate(OA_change()) || is.null(input$hot)) {
       datacopy <- teden_df()
     }
     else {
-      datacopy = hot_to_r(input$hot)
+      datacopy <- hot_to_r(input$hot)
     }
 
     #If there is change in data
@@ -357,13 +357,15 @@ server=function(input,output, session){
 
       datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
     }
+
     OA_change(FALSE)
 
     datacopy
 
   })
 
-  hott <- reactive(hot_validate_numeric(
+
+    hott <- reactive(hot_validate_numeric(
                       hot_col(
                         hot_col(
                           hot_cols(
