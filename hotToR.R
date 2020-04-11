@@ -312,7 +312,7 @@ server=function(input,output, session){
     datacopy <- NULL
 
     #For initial data upload
-    if(OA_change() || is.null(input$hot)) {
+    if(isolate(OA_change()) || is.null(input$hot)) {
       datacopy <- teden_df()
     }
     else {
@@ -357,6 +357,8 @@ server=function(input,output, session){
 
       datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
     }
+
+    print(isolate(OA_change))
     OA_change(FALSE)
 
     datacopy
