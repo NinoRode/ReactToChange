@@ -33,7 +33,7 @@ server=function(input,output, session){
     updateDateInput(session, "week", value = zac_tedna())
   )
 
-   file_name <- reactive(paste(input$tab, format(input$week, "%d_%b"), ".csv", sep = ""))
+   file_name <- reactive(paste(input$tab, format(input$week, "-%d-%b"), ".csv", sep = ""))
 
    observe( if(!file.exists(file_name())) {
      tdn <- seq(Sys.Date()+1, by = "day", length.out = 7)
@@ -41,10 +41,8 @@ server=function(input,output, session){
                      datum = as.character(tdn, "%e. %b. %Y"),
                      beginning = as.numeric(rep(NA, 7)),
                      ending = as.numeric(rep(NA, 7)),
-                     hours = as.numeric(rep(NA, 7)),
-                     vacancy =  factor(c(rep("free", 5), "saturday", "sunday"),
-                                       levels = c("work", "free", "saturday",
-                                                  "sunday", "holiday")))
+                     hours = as.numeric(rep(NA, 7)))
+
      write.csv2(df, file_name(), row.names = FALSE)
      df
    })
@@ -83,13 +81,13 @@ server=function(input,output, session){
     #If there is change in data
     if(!is.null(input$hot$changes$changes)){
 
-      row.no <- as.numeric(unlist(input$hot$changes$changes)[1])
+      # row.no <- as.numeric(unlist(input$hot$changes$changes)[1])
       col.no <- as.numeric(unlist(input$hot$changes$changes)[2])
       new.val <- unlist(input$hot$changes$changes)[4]
 
       #If the changed value is prihod or odhod
       if(col.no == 2 || col.no == 3){
-        datacopy[row.no+1, 5] <- as.numeric(datacopy[row.no+1, 4]) - as.numeric(datacopy[row.no+1, 3])
+        datacopy[, 5] <- as.numeric(datacopy[, 4]) - as.numeric(datacopy[, 3])
       }
 
     }
