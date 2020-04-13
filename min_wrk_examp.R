@@ -1,6 +1,20 @@
 library(shiny)
 library(rhandsontable)
 
+tdn <- seq(Sys.Date()+1, by = "day", length.out = 7)
+table1 <- data.frame(day = weekdays(tdn+1),
+                datum = as.character(tdn, "%e. %b. %Y"),
+                beginning = as.numeric(rep(NA, 7)),
+                ending = as.numeric(rep(NA, 7)),
+                hours = as.numeric(rep(NA, 7)))
+
+tdn <- seq(Sys.Date()+1, by = "day", length.out = 7)
+table2 <-data.frame(day = weekdays(tdn+1),
+                datum = as.character(tdn, "%e. %b. %Y"),
+                beginning = as.numeric(rep(NA, 7)),
+                ending = as.numeric(rep(NA, 7)),
+                hours = as.numeric(rep(NA, 7)))
+
 ############################# UI #############################
 
 ui = shinyUI(fluidPage(
@@ -36,13 +50,6 @@ server=function(input,output, session){
    file_name <- reactive(paste(input$tab, format(input$week, "-%d-%b"), ".csv", sep = ""))
 
    observe( if(!file.exists(file_name())) {
-     tdn <- seq(Sys.Date()+1, by = "day", length.out = 7)
-     df <-data.frame(day = weekdays(tdn+1),
-                     datum = as.character(tdn, "%e. %b. %Y"),
-                     beginning = as.numeric(rep(NA, 7)),
-                     ending = as.numeric(rep(NA, 7)),
-                     hours = as.numeric(rep(NA, 7)))
-
      write.csv2(df, file_name(), row.names = FALSE)
      df
    })
@@ -87,7 +94,7 @@ server=function(input,output, session){
 
       #If the changed value is prihod or odhod
       if(col.no == 2 || col.no == 3){
-        datacopy[, 5] <- as.numeric(datacopy[, 4]) - as.numeric(datacopy[, 3])
+        datacopy[, 5] <- as.numeric(datacopy[, 4]) - as.numeric(datacopy[2, 3])
       }
 
     }
