@@ -73,14 +73,12 @@ server=function(input,output, session){
     }
 
     tab_change(FALSE)
-print(str(input$hot))
     datacopy
 
   })
-  rhot <- eventReactive(list(input$tab,input$hot), rhandsontable(for_week()))
 
   output$hot <- renderRHandsontable(
-    rhot()
+    rhandsontable(for_week())
   )
 
   observeEvent(input$enter, {
