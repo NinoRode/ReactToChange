@@ -166,8 +166,8 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  prvi <- as.Date(teden_df()$dat[1],  "%d. %b. %Y")
-  zadnji <- as.Date(teden_df()$dat[7],  "%d. %b. %Y")
+  prvi <- as.Date(teden_df$dat[1],  "%d. %b. %Y")
+  zadnji <- as.Date(teden_df$dat[7],  "%d. %b. %Y")
   od_dne <- paste(format(prvi, "%d. "), meseca[as.numeric(format(prvi, "%m"))])
   do_dne <- paste(format(zadnji, "%d. "), meseca[as.numeric(format(zadnji, "%m"))])
   writeData(wb, sheet = 1, x = c(od_dne, do_dne),
@@ -189,7 +189,7 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(wb, sheet = 1, x = teden_df(),
+  writeDataTable(wb, sheet = 1, x = teden_df,
                  startCol = 1,
                  startRow = 8,
                  colNames = TRUE, rowNames = FALSE,
@@ -197,7 +197,7 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
                  firstColumn = TRUE
   )
 
-  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", sum(teden_df()$ure, na.rm = TRUE))),
+  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", sum(teden_df$ure, na.rm = TRUE))),
             startCol = 2,
             startRow = 16,
             colNames = FALSE, rowNames = FALSE
@@ -238,14 +238,6 @@ ui = shinyUI(fluidPage(
 
 ########################## SEREVER ###########################
 
-##############################################################
-# TODO:
-# observe ali menjaš OA ali teden:
-#   takrat:
-#     beri novo tabelo iz baze, če je ni, naredi default.
-#     zaženi hott z novo tabelo
-##############################################################
-
 server=function(input,output, session){
 
   options(warn = -1)
@@ -258,6 +250,7 @@ server=function(input,output, session){
     updateDateInput(session, "teden", value = zac_tedna())
     )
 
+  # Prepare empty default data frame (this will go out of server)
   zt <- Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
 
   default_df <- data.frame(dat = as.character(zt, "%d. %b. %Y"),
@@ -271,7 +264,7 @@ server=function(input,output, session){
                            stringsAsFactors = FALSE)
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
-  output$title <- renderText(c("Trenutna tabela: ", input$OA))
+  output$title <- renderText(c("Trenutna tabela: ", input$OA, " za ", as.character(input$teden, "%d. %b. %Y")))
   output$tabela <- renderText(table_name())
 
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
@@ -279,14 +272,14 @@ server=function(input,output, session){
   flat_df <- reactive({
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
-    zt <- as.character(zac_tedna(), "%d. %b. %Y")
+    # zt <- as.character(zac_tedna(), "%d. %b. %Y")
 
     if(!dbExistsTable(urnik_db, table_name())) {
       createTable(urnik_db, default_df,  table_name(), "dat")
       replaceData(urnik_db, table_name(), default_df)
     }
 
-    fl_df <- readData(urnik_db, table_name(), "dat", zt)
+    fl_df <- readData(urnik_db, table_name(), "dat", as.character(zac_tedna(), "%d. %b. %Y"))
 
     dbDisconnect(urnik_db)
 
@@ -307,7 +300,7 @@ server=function(input,output, session){
 
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
-  za_teden <- reactive({
+  za_teden <- eventReactive(list(input$OA, input$teden, input$hot$changes$changes), {
 
     datacopy <- NULL
 
@@ -394,7 +387,7 @@ server=function(input,output, session){
     sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
 
-    saveXcllWb(isolate(input$OA), teden_df, xl_name)
+    saveXcllWb(isolate(input$OA), sav_teden_df, xl_name)
 
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
@@ -402,9 +395,14 @@ server=function(input,output, session){
       createTable(urnik_db, fl_df,  ime(), "dat")
 
     replaceData(urnik_db, ime(), fl_df)
+
+    output$tabela <- renderTable(sav_teden_df)
+
     dbDisconnect(urnik_db)
 
   })
+
+  onSessionEnded(stopApp)
 }
 
 # app <- shinyApp(ui = ui, server = server)

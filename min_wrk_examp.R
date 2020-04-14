@@ -9,8 +9,9 @@ table2 = data.frame( beginning = as.numeric(rep(9, 4)),
                 ending = as.numeric(rep(17, 4)))
 )
 
-data$table1$hours <- data$table1$ending - data$table1$beginning
-data$table2$hours <- data$table2$ending - data$table2$beginning
+data[["table1"]]$hours <- data[["table1"]]$ending - data[["table1"]]$beginning
+data[["table2"]]$hours <- data[["table2"]]$ending - data[["table2"]]$beginning
+
 ############################# UI #############################
 
 ui = shinyUI(fluidPage(
@@ -43,11 +44,13 @@ server=function(input,output, session){
 
   output$tabela <- renderTable(react_week())
 
-  observeEvent(input$tab, tab_change(TRUE))
+  observeEvent(input$tab,
+               {tab_change(TRUE)
+               })
 
 
   # Calculation of columns
-  for_week <- reactive({
+  for_week <- eventReactive(list(input$tab, input$hot$changes$changes), {
 
     datacopy <- NULL
 
@@ -82,7 +85,7 @@ server=function(input,output, session){
   )
 
   observeEvent(input$enter, {
-    data[[input$tab]] <- hot_to_r(input$hot)
+    data[[input$tab]] <<- hot_to_r(input$hot)
     output$tabela <- renderTable( data[[input$tab]])
   })
 
