@@ -206,9 +206,14 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
                          ned_prihod = NA, ned_odhod = NA, ned_opomba = "nedelja",
                          stringsAsFactors = FALSE)
 
+months <- list("jan" = 31, "feb" = 29, "mar" = 31, "apr" = 30, "maj" = 31, "jun" = 30,
+               "jul" = 31, "aug" = 31, "sep" = 30, "okt" = 31, "nov" = 30, "dec" = 31)
+
+
 ############################# UI #############################
 
 ui = shinyUI(fluidPage(
+  h2(textOutput("title")),
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
   dateInput("teden", "Izberi teden:",
             value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
@@ -218,14 +223,32 @@ ui = shinyUI(fluidPage(
   fluidRow(wellPanel(
     column(6,
            rHandsontableOutput("hot"),
-           actionButton(inputId="enter",label="Shrani urnik")
     ),
 
     column(6,
-           textOutput("title"),
            tableOutput("tabela"),
-           selectInput("izbor", "Prikaži shranjene tedne", choices = list(""))
-    )))
+    ))),
+
+  fluidRow(wellPanel(
+    column(6,
+           actionButton(inputId="enter",label="Shrani urnik")
+    ),
+
+    column(4,
+           selectInput("izbor", "Prikaži shranjene tedne",
+                       choices = as.character(
+                         Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                         "%d. %b. %Y"))
+    ),
+    column(1,
+           actionButton(inputId="copy",label="Kopiraj urnik"),
+           actionButton(inputId="paste",label="Prilepi urnik")
+    ),
+    column(1,
+           selectInput(inputId="report",label="Prisotnost", choices = as.list(names(months))
+             )
+    ),
+  ))
 ))
 
 ########################## SEREVER ###########################
@@ -250,9 +273,9 @@ server=function(input,output, session){
 
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
-  observe({
+  getDates <- function(sql_name, table_name) {
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
-    ch <- readData(urnik_db, table_name(), what = "dat")
+    ch <- readData(urnik_db, table_name, what = "dat")
 
     dbDisconnect(urnik_db)
 
@@ -261,13 +284,16 @@ server=function(input,output, session){
     ch <- as.list(ch[order(ch, decreasing = TRUE)])
     ch <- lapply(ch, function(c) as.character(c, "%d. %b. %Y"))
     names(ch) <- NULL
+    return(ch)
+  }
 
+  observe({
+    ch <- getDates(sql_name, table_name())
     updateSelectInput(session, "izbor", choices = ch)
   })
 
   observeEvent(input$izbor, {
     val <-as.Date(isolate(input$izbor), "%d. %b. %Y")
-    print(val)
     updateDateInput(session, "teden", value = val)
     })
 
@@ -402,6 +428,19 @@ server=function(input,output, session){
 
     dbDisconnect(urnik_db)
 
+  })
+
+  observeEvent(input$copy, {
+               teden_copy <- teden_df()
+  })
+
+  # To do this you should use reactive values Prestavi dogajanje v reactiveValues
+  # teden_df <- eventReactive(input$paste,
+  #              teden_copy
+  # )
+
+  observeEvent(input$report, {
+    # tu pride izdelava poročila
   })
 
   onSessionEnded(stopApp)
