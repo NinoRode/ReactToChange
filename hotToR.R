@@ -358,6 +358,10 @@ server=function(input,output, session){
       datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
     }
 
+<<<<<<< HEAD
+=======
+    print(isolate(OA_change))
+>>>>>>> 7d72cb989c4cec4dc19fe3e5e1b2df2dd964a754
     OA_change(FALSE)
 
     datacopy
