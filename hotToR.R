@@ -206,20 +206,29 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
                          ned_prihod = NA, ned_odhod = NA, ned_opomba = "nedelja",
                          stringsAsFactors = FALSE)
 
-months <- list("jan" = 31, "feb" = 29, "mar" = 31, "apr" = 30, "maj" = 31, "jun" = 30,
-               "jul" = 31, "aug" = 31, "sep" = 30, "okt" = 31, "nov" = 30, "dec" = 31)
-
-
 ############################# UI #############################
 
 ui = shinyUI(fluidPage(
-  h2(textOutput("title")),
-  selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
-  dateInput("teden", "Izberi teden:",
-            value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-            format = "DD, dd. M. yyyy",
-            language = "sl",
-            weekstart = 1),
+  fluidRow(
+    column(8, offset = 2, allign = "center",
+           h2(textOutput("title")))),
+  fluidRow(
+    h3(column(6, offset = 4, allign = "center",
+           selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
+  fluidRow(
+    column(6,
+           dateInput("teden", "Izberi teden:",
+                     value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                     format = "DD, dd. M. yyyy",
+                     language = "sl",
+                     weekstart = 1),
+    ),
+    column(6,
+           selectInput(inputId="report",label="Pripravi listo prisotnosti za:",
+                       choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
+                       selected = format(Sys.Date(), "%B"))
+    )
+  ),
   fluidRow(wellPanel(
     column(6,
            rHandsontableOutput("hot"),
@@ -234,20 +243,18 @@ ui = shinyUI(fluidPage(
            actionButton(inputId="enter",label="Shrani urnik")
     ),
 
-    column(4,
+    column(3,
            selectInput("izbor", "Prikaži shranjene tedne",
                        choices = as.character(
                          Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
                          "%d. %b. %Y"))
     ),
-    column(1,
-           actionButton(inputId="copy",label="Kopiraj urnik"),
-           actionButton(inputId="paste",label="Prilepi urnik")
-    ),
-    column(1,
-           selectInput(inputId="report",label="Prisotnost", choices = as.list(names(months))
-             )
-    ),
+    column(3,
+          dateInput(inputId="copy", label="Kopiraj urnik v:",
+                    value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                    format = "DD, dd. M. yyyy",
+                    language = "sl",
+                    weekstart = 1))
   ))
 ))
 
@@ -268,7 +275,7 @@ server=function(input,output, session){
   # Prepare empty default data frame (this will go out of server)
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
-  output$title <- renderText(c("Trenutna tabela: ", input$OA, " za ", as.character(input$teden, "%d. %b. %Y")))
+  output$title <- renderText(c("Tabela za OA: ", input$OA, ", v tednu od ", as.character(input$teden, "%d. %b. %Y")))
   output$tabela <- renderText(table_name())
 
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
@@ -296,6 +303,34 @@ server=function(input,output, session){
     val <-as.Date(isolate(input$izbor), "%d. %b. %Y")
     updateDateInput(session, "teden", value = val)
     })
+
+  observeEvent(input$copy, {
+    zac_tedna <- (isolate(input$copy) - as.numeric(format(isolate(input$copy), "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
+    updateDateInput(session, "teden", value = zac_tedna())
+
+    copy_df <- flat_df()
+    copy_df$dat <- as.character(zac_tedna)
+
+    urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
+
+    replaceData(urnik_db, table_name(), copy_df)
+    dbDisconnect(urnik_db)
+
+    updateDateInput(session, "teden", value = zac_tedna())
+  })
+
+  observeEvent(input$report, {
+    val <- getDates(sql_name, table_name)
+    num_rec <- length(val)
+    val <- sapply(1:num_rec, function (i) {
+      v <- as.Date(i, "%d. %b. %Y")
+      })
+    begin_month <- as.Date(paste("1.", isolate(input$report), "2020"),  "%d. %B %Y")
+    report_month <- seq.Date(begin_month, by = "month", length.out = 2) # REPORT MOINTH JE NAROBE?
+    report_month[1] <- report_month[1] - as.numeric(format(report_month[1], "%u"))
+    report_month[2] <- report_month[2] - 1
+    for_report <-val[(report_month[1] < val & val < report_month[2])]
+  })
 
   flat_df <- reactive({
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
