@@ -7,14 +7,6 @@ library(RSQLite)
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
 
-#########################################################################################################
-#
-# Osnova je fl_df. fl_df mora biti reative, odvisen od OA in datuma
-#       pri vsaki spremembi pogleda, ali je za ta datum in tega OA že bazi, če ni, ga pa nar'di
-#
-# Iz fl_df gradiš teden, iz tedna hot
-# hot obdeluješ in ga spraviš z gubom (tu narediš nov fl_df)
-#########################################################################################################
 
 flatten_teden <- function(df) {
   ldf <- as.list(df[, c(3, 4, 6)])
@@ -94,17 +86,6 @@ createTable <- function(db, df, table_name, key) {
   dbExecute(db, query)
 }
 
-# saveData <- function(db, table, df) {
-#   query <- sprintf(
-#     "INSERT INTO %s (%s) VALUES ('%s')",
-#     table,
-#     paste(names(df), collapse = ", "),
-#     paste(df, collapse = "', '")
-#   )
-#   # Submit the update query and disconnect
-#   dbExecute(db, query)
-# }
-
 replaceData <- function(db, table, df) {
   query <- sprintf(
     "REPLACE INTO %s (%s) VALUES ('%s')",
@@ -116,10 +97,10 @@ replaceData <- function(db, table, df) {
   dbExecute(db, query)
 }
 
-readData <- function(db, table, crit = "", sel_val = "") {
+readData <- function(db, table, what = "*", crit = "", sel_val = "") {
   # Prepare the querry
   if (crit != "") crit <- sprintf("WHERE %s = '%s'", crit, sel_val)
-  query <- sprintf("SELECT * FROM %s %s", table, crit)
+  query <- sprintf("SELECT %s FROM %s %s", what, table, crit)
   # Submit the query
   df <- dbGetQuery(db, query)
   return(df)
@@ -166,8 +147,8 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  prvi <- as.Date(teden_df()$dat[1],  "%d. %b. %Y")
-  zadnji <- as.Date(teden_df()$dat[7],  "%d. %b. %Y")
+  prvi <- as.Date(teden_df$dat[1],  "%d. %b. %Y")
+  zadnji <- as.Date(teden_df$dat[7],  "%d. %b. %Y")
   od_dne <- paste(format(prvi, "%d. "), meseca[as.numeric(format(prvi, "%m"))])
   do_dne <- paste(format(zadnji, "%d. "), meseca[as.numeric(format(zadnji, "%m"))])
   writeData(wb, sheet = 1, x = c(od_dne, do_dne),
@@ -189,7 +170,7 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(wb, sheet = 1, x = teden_df(),
+  writeDataTable(wb, sheet = 1, x = teden_df,
                  startCol = 1,
                  startRow = 8,
                  colNames = TRUE, rowNames = FALSE,
@@ -197,7 +178,7 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
                  firstColumn = TRUE
   )
 
-  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", sum(teden_df()$ure, na.rm = TRUE))),
+  writeData(wb, sheet = 1, x = t(c("Skupaj:", "", "", sum(teden_df$ure, na.rm = TRUE))),
             startCol = 2,
             startRow = 16,
             colNames = FALSE, rowNames = FALSE
@@ -215,9 +196,24 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
   }
 }
 
+default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8, "%d. %b. %Y"),
+                         pon_prihod = NA, pon_odhod = NA, pon_opomba = "prosto",
+                         tor_prihod = NA, tor_odhod = NA, tor_opomba = "prosto",
+                         sre_prihod = NA, sre_odhod = NA, sre_opomba = "prosto",
+                         čet_prihod = NA, čet_odhod = NA, čet_opomba = "prosto",
+                         pet_prihod = NA, pet_odhod = NA, pet_opomba = "prosto",
+                         sob_prihod = NA, sob_odhod = NA, sob_opomba = "sobota",
+                         ned_prihod = NA, ned_odhod = NA, ned_opomba = "nedelja",
+                         stringsAsFactors = FALSE)
+
+months <- list("jan" = 31, "feb" = 29, "mar" = 31, "apr" = 30, "maj" = 31, "jun" = 30,
+               "jul" = 31, "aug" = 31, "sep" = 30, "okt" = 31, "nov" = 30, "dec" = 31)
+
+
 ############################# UI #############################
 
 ui = shinyUI(fluidPage(
+  h2(textOutput("title")),
   selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
   dateInput("teden", "Izberi teden:",
             value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
@@ -227,24 +223,35 @@ ui = shinyUI(fluidPage(
   fluidRow(wellPanel(
     column(6,
            rHandsontableOutput("hot"),
-           actionButton(inputId="enter",label="Shrani urnik")
     ),
 
     column(6,
-           textOutput("title"),
-           tableOutput("tabela")
-    )))
+           tableOutput("tabela"),
+    ))),
+
+  fluidRow(wellPanel(
+    column(6,
+           actionButton(inputId="enter",label="Shrani urnik")
+    ),
+
+    column(4,
+           selectInput("izbor", "Prikaži shranjene tedne",
+                       choices = as.character(
+                         Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                         "%d. %b. %Y"))
+    ),
+    column(1,
+           actionButton(inputId="copy",label="Kopiraj urnik"),
+           actionButton(inputId="paste",label="Prilepi urnik")
+    ),
+    column(1,
+           selectInput(inputId="report",label="Prisotnost", choices = as.list(names(months))
+             )
+    ),
+  ))
 ))
 
 ########################## SEREVER ###########################
-
-##############################################################
-# TODO:
-# observe ali menjaš OA ali teden:
-#   takrat:
-#     beri novo tabelo iz baze, če je ni, naredi default.
-#     zaženi hott z novo tabelo
-##############################################################
 
 server=function(input,output, session){
 
@@ -258,35 +265,49 @@ server=function(input,output, session){
     updateDateInput(session, "teden", value = zac_tedna())
     )
 
-  zt <- Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8
-
-  default_df <- data.frame(dat = as.character(zt, "%d. %b. %Y"),
-                           pon_prihod = NA, pon_odhod = NA, pon_opomba = "prosto",
-                           tor_prihod = NA, tor_odhod = NA, tor_opomba = "prosto",
-                           sre_prihod = NA, sre_odhod = NA, sre_opomba = "prosto",
-                           čet_prihod = NA, čet_odhod = NA, čet_opomba = "prosto",
-                           pet_prihod = NA, pet_odhod = NA, pet_opomba = "prosto",
-                           sob_prihod = NA, sob_odhod = NA, sob_opomba = "sobota",
-                           ned_prihod = NA, ned_odhod = NA, ned_opomba = "nedelja",
-                           stringsAsFactors = FALSE)
+  # Prepare empty default data frame (this will go out of server)
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
-  output$title <- renderText(c("Trenutna tabela: ", input$OA))
+  output$title <- renderText(c("Trenutna tabela: ", input$OA, " za ", as.character(input$teden, "%d. %b. %Y")))
   output$tabela <- renderText(table_name())
 
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
+  getDates <- function(sql_name, table_name) {
+    urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
+    ch <- readData(urnik_db, table_name, what = "dat")
+
+    dbDisconnect(urnik_db)
+
+    ch <- unlist(ch)
+    ch <- as.Date(ch, "%d. %b. %Y")
+    ch <- as.list(ch[order(ch, decreasing = TRUE)])
+    ch <- lapply(ch, function(c) as.character(c, "%d. %b. %Y"))
+    names(ch) <- NULL
+    return(ch)
+  }
+
+  observe({
+    ch <- getDates(sql_name, table_name())
+    updateSelectInput(session, "izbor", choices = ch)
+  })
+
+  observeEvent(input$izbor, {
+    val <-as.Date(isolate(input$izbor), "%d. %b. %Y")
+    updateDateInput(session, "teden", value = val)
+    })
+
   flat_df <- reactive({
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
-    zt <- as.character(zac_tedna(), "%d. %b. %Y")
+    # zt <- as.character(zac_tedna(), "%d. %b. %Y")
 
     if(!dbExistsTable(urnik_db, table_name())) {
       createTable(urnik_db, default_df,  table_name(), "dat")
       replaceData(urnik_db, table_name(), default_df)
     }
 
-    fl_df <- readData(urnik_db, table_name(), "dat", zt)
+    fl_df <- readData(urnik_db, table_name(), what ="*", crit = "dat", sel_val = as.character(zac_tedna(), "%d. %b. %Y"))
 
     dbDisconnect(urnik_db)
 
@@ -307,7 +328,7 @@ server=function(input,output, session){
 
 
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
-  za_teden <- reactive({
+  za_teden <- eventReactive(list(input$OA, input$teden, input$hot$changes$changes), {
 
     datacopy <- NULL
 
@@ -363,7 +384,8 @@ server=function(input,output, session){
 
   })
 
-  hott <- reactive(hot_validate_numeric(
+
+    hott <- reactive(hot_validate_numeric(
                       hot_col(
                         hot_col(
                           hot_cols(
@@ -392,7 +414,7 @@ server=function(input,output, session){
     sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
 
 
-    saveXcllWb(isolate(input$OA), teden_df, xl_name)
+    saveXcllWb(isolate(input$OA), sav_teden_df, xl_name)
 
     urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
 
@@ -400,9 +422,27 @@ server=function(input,output, session){
       createTable(urnik_db, fl_df,  ime(), "dat")
 
     replaceData(urnik_db, ime(), fl_df)
+
+    output$tabela <- renderTable(sav_teden_df)
+
     dbDisconnect(urnik_db)
 
   })
+
+  observeEvent(input$copy, {
+               teden_copy <- teden_df()
+  })
+
+  # To do this you should use reactive values Prestavi dogajanje v reactiveValues
+  # teden_df <- eventReactive(input$paste,
+  #              teden_copy
+  # )
+
+  observeEvent(input$report, {
+    # tu pride izdelava poročila
+  })
+
+  onSessionEnded(stopApp)
 }
 
 # app <- shinyApp(ui = ui, server = server)
