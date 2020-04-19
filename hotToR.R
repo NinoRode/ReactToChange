@@ -222,8 +222,13 @@ ui = shinyUI(fluidPage(
                      format = "DD, dd. M. yyyy",
                      language = "sl",
                      weekstart = 1),
+           selectInput("izbor", "ali Izberi teden iz baze:",
+                       choices = as.character(
+                         Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                         "%d. %b. %Y"))
     ),
     column(6,
+           p(" "),
            selectInput(inputId="report",label="Pripravi listo prisotnosti za:",
                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
                        selected = format(Sys.Date(), "%B"))
@@ -241,20 +246,7 @@ ui = shinyUI(fluidPage(
   fluidRow(wellPanel(
     column(6,
            actionButton(inputId="enter",label="Shrani urnik")
-    ),
-
-    column(3,
-           selectInput("izbor", "Prikaži shranjene tedne",
-                       choices = as.character(
-                         Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                         "%d. %b. %Y"))
-    ),
-    column(3,
-          dateInput(inputId="copy", label="Kopiraj urnik v:",
-                    value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                    format = "DD, dd. M. yyyy",
-                    language = "sl",
-                    weekstart = 1))
+    )
   ))
 ))
 
@@ -327,7 +319,7 @@ server=function(input,output, session){
     })
     val <- as.Date(val, "1970-01-01")
     begin_month <- as.Date(paste("1.", isolate(input$report), "2020"),  "%d. %B %Y")
-    report_month <- seq.Date(begin_month, by = "month", length.out = 2) # REPORT MOINTH JE NAROBE?
+    report_month <- seq.Date(begin_month, by = "month", length.out = 2)
     report_month[1] <- report_month[1] - as.numeric(format(report_month[1], "%u"))
     report_month[2] <- report_month[2] - 1
     for_report <-date_rec[(report_month[1] < val & val < report_month[2] & !is.na(val))]
