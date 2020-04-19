@@ -1,8 +1,8 @@
 library(shiny)
-library(reactlog)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
+# library(reactlog)
 
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
@@ -49,17 +49,6 @@ build_teden <- function(df) {
                                        "izobraževanje"))
   return(teden_df)
 }
-
-# prepare_flat <- function(zt) {
-#   # Priprava podatkov tedna za vnos v SQLite bazo
-#   teden_df <- build_teden()
-#   teden_df$opomba <- as.character(teden_df$opomba)
-#   tdf <- flatten_teden(teden_df)                            # flatten reši argumentov
-#   fl_df <- cbind(dat = zt, tdf)
-#   fl_df$dat <- as.character(fl_df$dat, "%d. %b. %Y")
-#
-#   return(fl_df)
-# }
 
 gsubAll <- function(string, to_replace_with, sep = "") {
   n <- ncol(to_replace_with)
@@ -196,6 +185,240 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
   }
 }
 
+saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
+
+  #Prepare data frame for the report
+  rep_df <- rep_df[order(as.Date(rep_df$dat, "%d. %b. %Y"))]
+  rep_num <- length(rep_df$dat)
+  ted_df <- data.frame()
+  for (i in 1:rep_num) {
+    ted_df <- rbind(build_teden(rep_df[i, ]), ted_df)
+  }
+  mes <- seq.Date(as.Date(paste("1.", mesec, as.character(Sys.Date(), "%Y")), "%d. %B %Y"), by = "month", length.out = 2)
+  # print(mes)
+  # print(ted_df)
+  # print(mes[1] <= as.Date(ted_df$datum,  "%e. %b. %Y") &
+  #         as.Date(ted_df$datum,  "%e. %b. %Y") < mes[2])
+  ted_df <- ted_df[(mes[1] <= as.Date(ted_df$datum,  "%e. %b. %Y") &
+                     as.Date(ted_df$datum,  "%e. %b. %Y") < mes[2]), ]
+  day_num <- length(ted_df$prihod)
+
+  wb_df <- data.frame(DAT = numeric(), ODSOT = character(),
+                      noc00_06z = numeric(), noc00_06k = numeric(), ur00_06 = numeric(),
+                      dop06_16z = numeric(), dop06_16k = numeric(), ur06_16 = numeric(),
+                      pop16_22z = numeric(), pop16_22k = numeric(), ur16_22 = numeric(),
+                      noc22_24z = numeric(), noc22_24k = numeric(), ur22_24 = numeric()
+  )[1:day_num, ]
+
+  # wb_df$DAT <- as.numeric(as.character(as.Date(ted_df$datum, "%e. %b. %Y"), "%d"))
+  wb_df$DAT <- c(1:length(wb_df$DAT))
+
+  wb_df$ODSOT <- as.character(ted_df$opomba)
+  wb_df$ODSOT[wb_df$ODSOT == "dopust"] <- "D"
+  wb_df$ODSOT[wb_df$ODSOT == "bolniška"] <- "B"
+  wb_df$ODSOT[wb_df$ODSOT == "praznik"] <- "P"
+
+  wb_df$noc00_06z <- 0
+  wb_df$dop06_16z <- 6
+  wb_df$pop16_22z <- 16
+  wb_df$noc22_24z <- 22
+
+  wb_df$noc00_06k <- 6
+  wb_df$dop06_16k <- 16
+  wb_df$pop16_22k <- 22
+  wb_df$noc22_24k <- 24
+
+  mask_time <- matrix( nrow = length( wb_df$noc00_06z), ncol = length(wb_df))
+
+  mask_time [, 3] <- ifelse(ted_df$prihod < 6, 1, 0)
+  mask_time [, 6] <- ifelse(ted_df$prihod < 16 ,1, 0)
+  mask_time [, 9] <- ifelse(ted_df$prihod < 22, 1, 0)
+  mask_time [, 12] <- 1
+
+  mask_time [, 3] <-  mask_time [, 3]
+  mask_time [, 6] <- ifelse(ted_df$odhod <= 6, 0, 1 * mask_time [, 6])
+  mask_time [, 9] <- ifelse(ted_df$odhod <= 16, 0, 1 * mask_time [, 9])
+  mask_time [, 12] <- ifelse(ted_df$odhod <= 22, 0, 1 * mask_time [, 12])
+
+  mask_time [, 4] <- 1
+  mask_time [, 7] <- ifelse(ted_df$odhod <= 6, 0, 1)
+  mask_time [, 10] <- ifelse(ted_df$odhod <= 16, 0, 1)
+  mask_time [, 13] <- ifelse(ted_df$odhod <= 22, 0, 1)
+
+  mask_time [, 4] <- ifelse(ted_df$prihod < 6, 1 * mask_time [, 4], 0)
+  mask_time [, 7] <- ifelse(ted_df$prihod < 16, 1 * mask_time [, 7], 0)
+  mask_time [, 10] <- ifelse(ted_df$prihod < 22, 1 * mask_time [, 10], 0)
+  mask_time [, 13] <- mask_time [, 13]
+
+  mask_time <- mask_time[, 3:14]
+  mask_time[is.na(mask_time)] <-0
+
+  wb_m <- as.matrix(wb_df[3:14])
+  wb_m[is.na(wb_m)] <- 0
+
+  wb_df <- cbind(wb_df[1:2], as.data.frame(mask_time * wb_m))
+
+  wb_df$noc00_06z <- ifelse(ted_df$prihod < 6,  ted_df$prihod, wb_df$noc00_06z)
+  wb_df$dop06_16z <- ifelse(ted_df$prihod >= 6 & ted_df$prihod < 16,  ted_df$prihod, wb_df$dop06_16z)
+  wb_df$pop16_22z <- ifelse(ted_df$prihod >= 16 & ted_df$prihod < 22,  ted_df$prihod, wb_df$pop16_22z)
+  wb_df$noc22_24z <- ifelse(ted_df$prihod >= 22,  ted_df$prihod, wb_df$noc22_24z)
+
+  wb_df$noc00_06k <- ifelse(ted_df$odhod <= 6,  ted_df$odhod, wb_df$noc00_06k)
+  wb_df$dop06_16k <- ifelse(ted_df$odhod > 6 & ted_df$odhod <= 16,  ted_df$odhod, wb_df$dop06_16k)
+  wb_df$pop16_22k <- ifelse(ted_df$odhod > 16 & ted_df$odhod <= 22,  ted_df$odhod,  wb_df$pop16_22k)
+  wb_df$noc22_24k <- ifelse(ted_df$odhod > 22,  ted_df$odhod, wb_df$noc22_24k)
+
+  wb_df$ur00_06 <- wb_df$noc00_06k - wb_df$noc00_06z
+  wb_df$ur06_16 <- wb_df$dop06_16k - wb_df$dop06_16z
+  wb_df$ur16_22 <- wb_df$pop16_22k - wb_df$pop16_22z
+  wb_df$ur22_24 <- wb_df$noc22_24k - wb_df$noc22_24z
+
+
+  # Prepare a workbook
+
+  rep_wb <- loadWorkbook("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx")
+  meseci <- paste(toupper(format(ISOdate(2020, 1:12, 1), "%B")), as.character(Sys.Date(), "%Y"))
+  this_month <- paste(toupper(mesec), as.character(Sys.Date(), "%Y"))
+  lapply(as.list(meseci), function (x) {
+    if (x != this_month) removeWorksheet(rep_wb, x)
+  })
+
+
+  ##################################### NOW FILL THE REPORT ##########################################
+
+  writeData(rep_wb, sheet = 1,
+            x = isolate(OA),
+            startCol = 6,
+            startRow = 1,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+  writeData(rep_wb, sheet = 1,
+            x = "Matjaž Metelko",
+            startCol = 4,
+            startRow = 2,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$ODSOT,
+                 startCol = 3,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$noc00_06z,
+                 startCol = 4,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$noc00_06k,
+                 startCol = 5,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$dop06_16z,
+                 startCol = 7,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$dop06_16k,
+                 startCol = 8,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$pop16_22k,
+                 startCol = 10,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$pop16_22k,
+                 startCol = 11,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x = wb_df$noc22_24z,
+                 startCol = 13,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  writeDataTable(rep_wb, sheet = 1, x =  wb_df$noc22_24k,
+                 startCol = 14,
+                 startRow = 17,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+  )
+
+  # wb_df$ur00_06 <- wb_df$noc00_06k - wb_df$noc00_06z
+  # wb_df$ur06_16 <- wb_df$dop06_16k - wb_df$dop06_16z
+  # wb_df$ur16_22 <- wb_df$pop16_22k - wb_df$pop16_22z
+  # wb_df$ur22_24 <- wb_df$noc22_24k - wb_df$noc22_24z
+
+  # Fill in the leave data
+  # First find where the table begins
+  start_where <- 45 + which("OPRAVLJENE URE" == read.xlsx(
+    rep_wb,
+    sheet = 1,
+    startRow = 46,
+    colNames = FALSE,
+    cols = 2,
+    skipEmptyRows = FALSE
+  ))
+
+  writeData(rep_rep_wb, sheet = 1,
+            x = sum(which(wb_df$ODSOT == "B")),
+            startCol = 8,
+            startRow = start_where + 1,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+  writeData(rep_rep_wb, sheet = 1,
+            x = sum(which(wb_df$ODSOT == "D")),
+            startCol = 8,
+            startRow = start_where + 2,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+  writeData(rep_rep_wb, sheet = 1,
+            x = sum(which(wb_df$ODSOT == "B")),
+            startCol = 8,
+            startRow = start_where + 3,
+            colNames = FALSE, rowNames = FALSE
+  )
+
+  ##################################### NOW FILL THE REPORT ##########################################
+  options("openxlsx.borderColour" = "#4F80BD")
+  options("openxlsx.borderStyle" = "thin")
+  options("openxlsx.halign" = "center")
+  options("openxlsx.borderStyle" = "thin")
+  modifyBaseFont(rep_wb, fontSize = 10, fontName = "Arial Narrow")
+
+  tabHeadStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+                              border = "bottom")
+  tabStyle <- createStyle(halign = "center")
+  tabFootStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+                              border = "top")
+  infoStyle <- createStyle(textDecoration = "bold")
+
+  # addWorksheet(rep_wb, sheetName = paste(OA, mesec))
+
+  ####################################### OBLIKUJ TABELO
+}
+
 default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8, "%d. %b. %Y"),
                          pon_prihod = NA, pon_odhod = NA, pon_opomba = "prosto",
                          tor_prihod = NA, tor_odhod = NA, tor_opomba = "prosto",
@@ -228,8 +451,7 @@ ui = shinyUI(fluidPage(
                          "%d. %b. %Y"))
     ),
     column(6,
-           p(" "),
-           selectInput(inputId="report",label="Pripravi listo prisotnosti za:",
+          selectInput(inputId="report",label="Pripravi listo prisotnosti za:",
                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
                        selected = format(Sys.Date(), "%B"))
     )
@@ -323,6 +545,24 @@ server=function(input,output, session){
     report_month[1] <- report_month[1] - as.numeric(format(report_month[1], "%u"))
     report_month[2] <- report_month[2] - 1
     for_report <-date_rec[(report_month[1] < val & val < report_month[2] & !is.na(val))]
+
+    rep_df <- data.frame()
+
+    urnik_db <- dbConnect(RSQLite::SQLite(), sql_name)
+
+    for(d in for_report) {
+      rep_df <- (rbind(readData(urnik_db, table_name(), what ="*", crit = "dat", sel_val = as.character(d, "%d. %b. %Y")), rep_df))
+    }
+    rep_df <- as.data.frame(rep_df)
+
+    dbDisconnect(urnik_db)
+
+    ime <- (paste(unlist(strsplit(isolate(input$OA), " ")), collapse = ""))
+
+    xl_name <- paste(getwd(), "/", ime, "_", isolate(input$report), as.character(format(Sys.Date(), "%y")), ".xlsx", sep = "")
+
+    saveXcllRprt(isolate(input$OA), isolate(input$report), rep_df, xl_name)
+
   })
 
   flat_df <- reactive({
