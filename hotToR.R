@@ -320,16 +320,17 @@ server=function(input,output, session){
   })
 
   observeEvent(input$report, {
-    val <- getDates(sql_name, table_name)
-    num_rec <- length(val)
+    date_rec <- unlist(getDates(sql_name, table_name()))
+    num_rec <- length(date_rec)
     val <- sapply(1:num_rec, function (i) {
-      v <- as.Date(i, "%d. %b. %Y")
-      })
+      as.Date(date_rec[i], "%d. %b. %Y")
+    })
+    val <- as.Date(val, "1970-01-01")
     begin_month <- as.Date(paste("1.", isolate(input$report), "2020"),  "%d. %B %Y")
     report_month <- seq.Date(begin_month, by = "month", length.out = 2) # REPORT MOINTH JE NAROBE?
     report_month[1] <- report_month[1] - as.numeric(format(report_month[1], "%u"))
     report_month[2] <- report_month[2] - 1
-    for_report <-val[(report_month[1] < val & val < report_month[2])]
+    for_report <-date_rec[(report_month[1] < val & val < report_month[2] & !is.na(val))]
   })
 
   flat_df <- reactive({
