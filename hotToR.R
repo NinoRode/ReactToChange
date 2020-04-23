@@ -188,7 +188,7 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
 saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
 
   #Prepare data frame for the report
-  rep_df <- rep_df[order(as.Date(rep_df$dat, "%d. %b. %Y"))]
+  rep_df <- rep_df[order(as.Date(rep_df$dat, "%d. %b. %Y")), ]
   rep_num <- length(rep_df$dat)
   ted_df <- data.frame()
   for (i in 1:rep_num) {
@@ -449,7 +449,8 @@ ui = shinyUI(fluidPage(
                          "%d. %b. %Y"))
     ),
     column(6,
-          selectInput(inputId="report",label="Pripravi listo prisotnosti za:",
+           actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
+           selectInput(inputId="report",label="Za:",
                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
                        selected = format(Sys.Date(), "%B"))
     )
@@ -457,6 +458,7 @@ ui = shinyUI(fluidPage(
   fluidRow(wellPanel(
     column(6,
            rHandsontableOutput("hot"),
+           textOutput("sum_hours")
     ),
 
     column(6,
@@ -531,7 +533,7 @@ server=function(input,output, session){
     updateDateInput(session, "teden", value = zac_tedna())
   })
 
-  observeEvent(input$report, {
+  observeEvent(input$do_report, {
     date_rec <- unlist(getDates(sql_name, table_name()))
     num_rec <- length(date_rec)
     val <- sapply(1:num_rec, function (i) {
@@ -592,7 +594,7 @@ server=function(input,output, session){
   observeEvent(list(input$OA, input$teden),
                OA_change(TRUE))
 
-
+################ HELP TABLE INPUT BROKEN!! ###############################
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   za_teden <- eventReactive(list(input$OA, input$teden, input$hot$changes$changes), {
 
@@ -664,6 +666,8 @@ server=function(input,output, session){
   output$hot <- renderRHandsontable({
     hott()
   })
+
+  output$sum_hours <- renderText(c("Število ur ta teden: ", sum(za_teden()[, 5], na.rm = TRUE)))
 
   observeEvent(input$enter, {
 
