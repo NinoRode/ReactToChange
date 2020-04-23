@@ -34,7 +34,7 @@ build_teden <- function(df) {
   teden_df$datum <- as.character(tdn, "%e. %b. %Y")
 
   m <- list(df[grepl("prihod", names(df))], df[grepl("odhod", names(df))], df[grepl("opomba", names(df))])
-  teden_df$prihod <-unlist(m[1])
+  teden_df$prihod <- unlist(m[1])
   teden_df$prihod <- as.numeric(teden_df$prihod)
 
   teden_df$odhod <- unlist(m[2])
