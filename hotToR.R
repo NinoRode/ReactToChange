@@ -300,63 +300,61 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$ODSOT,
+  writeData(rep_wb, sheet = 1, x = wb_df$ODSOT,
                  startCol = 3,
                  startRow = 17,
-                 colNames = FALSE, rowNames = FALSE,
-                 withFilter = FALSE,
+                 colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$noc00_06z,
+  writeData(rep_wb, sheet = 1, x = wb_df$noc00_06z,
                  startCol = 4,
                  startRow = 17,
-                 colNames = FALSE, rowNames = FALSE,
-                 withFilter = FALSE,
+                 colNames = FALSE, rowNames = FALSE
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$noc00_06k,
+  writeData(rep_wb, sheet = 1, x = wb_df$noc00_06k,
                  startCol = 5,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$dop06_16z,
+  writeData(rep_wb, sheet = 1, x = wb_df$dop06_16z,
                  startCol = 7,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$dop06_16k,
+  writeData(rep_wb, sheet = 1, x = wb_df$dop06_16k,
                  startCol = 8,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$pop16_22k,
+  writeData(rep_wb, sheet = 1, x = wb_df$pop16_22k,
                  startCol = 10,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$pop16_22k,
+  writeData(rep_wb, sheet = 1, x = wb_df$pop16_22k,
                  startCol = 11,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeDataTable(rep_wb, sheet = 1, x = wb_df$noc22_24z,
+  writeData(rep_wb, sheet = 1, x = wb_df$noc22_24z,
                  startCol = 13,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeDataTable(rep_wb, sheet = 1, x =  wb_df$noc22_24k,
+  writeData(rep_wb, sheet = 1, x =  wb_df$noc22_24k,
                  startCol = 14,
                  startRow = 17,
                  colNames = FALSE, rowNames = FALSE,
@@ -379,21 +377,21 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
     skipEmptyRows = FALSE
   ))
 
-  writeData(rep_rep_wb, sheet = 1,
-            x = sum(which(wb_df$ODSOT == "B")),
+  writeData(rep_wb, sheet = 1,
+            x = sum(which(wb_df$ODSOT == "P")),
             startCol = 8,
             startRow = start_where + 1,
             colNames = FALSE, rowNames = FALSE
   )
 
-  writeData(rep_rep_wb, sheet = 1,
+  writeData(rep_wb, sheet = 1,
             x = sum(which(wb_df$ODSOT == "D")),
             startCol = 8,
             startRow = start_where + 2,
             colNames = FALSE, rowNames = FALSE
   )
 
-  writeData(rep_rep_wb, sheet = 1,
+  writeData(rep_wb, sheet = 1,
             x = sum(which(wb_df$ODSOT == "B")),
             startCol = 8,
             startRow = start_where + 3,
