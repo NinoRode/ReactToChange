@@ -2,7 +2,7 @@ library(shiny)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
-# library(reactlog)
+library(reactlog)
 
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
@@ -708,19 +708,20 @@ server=function(input,output, session){
   #              teden_copy
   # )
 
-  observeEvent(input$report, {
-    # tu pride izdelava poročila
-  })
+  ############## commented out 24.4.
+  # observeEvent(input$report, {
+  #   # tu pride izdelava poročila
+  # })
 
   onSessionEnded(stopApp)
 }
 
-# app <- shinyApp(ui = ui, server = server)
-#
-# runApp(app)
-#
-#
-# reactlogShow()
+app <- shinyApp(ui = ui, server = server)
 
-shinyApp(ui = ui, server = server)
+runApp(app)
+
+
+reactlogShow()
+
+# shinyApp(ui = ui, server = server)
 
