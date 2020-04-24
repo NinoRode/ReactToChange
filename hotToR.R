@@ -2,7 +2,7 @@ library(shiny)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
-library(reactlog)
+# library(reactlog)
 
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
@@ -284,7 +284,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   })
 
 
-  ##################################### NOW FILL THE REPORT ##########################################
+  #Fill in the report
 
   writeData(rep_wb, sheet = 1,
             x = isolate(OA),
@@ -458,7 +458,11 @@ ui = shinyUI(fluidPage(
   fluidRow(wellPanel(
     column(6,
            rHandsontableOutput("hot"),
-           textOutput("sum_hours")
+           textOutput("sum_w_hours"),
+           textOutput("sum_P_hours"),
+           textOutput("sum_D_hours"),
+           textOutput("sum_B_hours"),
+           textOutput("sum_all_hours")
     ),
 
     column(6,
@@ -594,7 +598,6 @@ server=function(input,output, session){
   observeEvent(list(input$OA, input$teden),
                OA_change(TRUE))
 
-################ HELP TABLE INPUT BROKEN!! ###############################
   # Calculation of columns from https://stackoverflow.com/questions/44074184/reactive-calculate-columns-in-rhandsontable-in-shiny-rstudio
   za_teden <- eventReactive(list(input$OA, input$teden, input$hot$changes$changes), {
 
@@ -647,6 +650,7 @@ server=function(input,output, session){
       datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
     }
 
+    OA_change(FALSE)
 
     datacopy
 
@@ -667,7 +671,20 @@ server=function(input,output, session){
     hott()
   })
 
-  output$sum_hours <- renderText(c("Število ur ta teden: ", sum(za_teden()[, 5], na.rm = TRUE)))
+  observe({
+  w_hours <- sum(za_teden()[, 5], na.rm = TRUE)
+  P_hours <- sum(za_teden()[, 6] == "praznik", na.rm = TRUE) * 8
+  D_hours <- sum(za_teden()[, 6] == "dopust", na.rm = TRUE) * 8
+  B_hours <- sum(za_teden()[, 6] == "bolniška", na.rm = TRUE) * 8
+
+  all_hours <- w_hours + P_hours + D_hours + B_hours
+
+  output$sum_w_hours <- renderText(c("Število delovnih ur ta teden: ", w_hours))
+  output$sum_P_hours <- renderText(c("Število prazničnih ur ta teden: ", P_hours))
+  output$sum_D_hours <- renderText(c("Število ur iz dopusta ta teden: ", D_hours))
+  output$sum_B_hours <- renderText(c("Število ur bolnioške odsotnosti ta teden: ", B_hours))
+  output$sum_all_hours <-  renderText(c("Skupno število ur ta teden", all_hours))
+  })
 
   observeEvent(input$enter, {
 
@@ -716,12 +733,12 @@ server=function(input,output, session){
   onSessionEnded(stopApp)
 }
 
-app <- shinyApp(ui = ui, server = server)
+# app <- shinyApp(ui = ui, server = server)
+#
+# runApp(app)
+#
+#
+# reactlogShow()
 
-runApp(app)
-
-
-reactlogShow()
-
-# shinyApp(ui = ui, server = server)
+shinyApp(ui = ui, server = server)
 
