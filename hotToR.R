@@ -195,12 +195,13 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
     ted_df <- rbind(build_teden(rep_df[i, ]), ted_df)
   }
   mes <- seq.Date(as.Date(paste("1.", mesec, as.character(Sys.Date(), "%Y")), "%d. %B %Y"), by = "month", length.out = 2)
-  # print(mes)
-  # print(ted_df)
-  # print(mes[1] <= as.Date(ted_df$datum,  "%e. %b. %Y") &
-  #         as.Date(ted_df$datum,  "%e. %b. %Y") < mes[2])
+
   ted_df <- ted_df[(mes[1] <= as.Date(ted_df$datum,  "%e. %b. %Y") &
                      as.Date(ted_df$datum,  "%e. %b. %Y") < mes[2]), ]
+
+  ted_df$datum <- as.Date(ted_df$datum,  "%e. %b. %Y")
+  ted_df <- ted_df[order(ted_df$datum), ]
+
   day_num <- length(ted_df$prihod)
 
   wb_df <- data.frame(DAT = numeric(), ODSOT = character(),
@@ -273,7 +274,6 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   wb_df$ur16_22 <- wb_df$pop16_22k - wb_df$pop16_22z
   wb_df$ur22_24 <- wb_df$noc22_24k - wb_df$noc22_24z
 
-
   # Prepare a workbook
 
   rep_wb <- loadWorkbook("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx")
@@ -302,69 +302,64 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
 
   writeData(rep_wb, sheet = 1, x = wb_df$ODSOT,
                  startCol = 3,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$noc00_06z,
                  startCol = 4,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$noc00_06k,
                  startCol = 5,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$dop06_16z,
                  startCol = 7,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$dop06_16k,
                  startCol = 8,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
-  writeData(rep_wb, sheet = 1, x = wb_df$pop16_22k,
+  writeData(rep_wb, sheet = 1, x = wb_df$pop16_22z,
                  startCol = 10,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$pop16_22k,
                  startCol = 11,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$noc22_24z,
                  startCol = 13,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
 
   writeData(rep_wb, sheet = 1, x =  wb_df$noc22_24k,
                  startCol = 14,
-                 startRow = 17,
+                 startRow = 18,
                  colNames = FALSE, rowNames = FALSE,
                  withFilter = FALSE,
   )
-
-  # wb_df$ur00_06 <- wb_df$noc00_06k - wb_df$noc00_06z
-  # wb_df$ur06_16 <- wb_df$dop06_16k - wb_df$dop06_16z
-  # wb_df$ur16_22 <- wb_df$pop16_22k - wb_df$pop16_22z
-  # wb_df$ur22_24 <- wb_df$noc22_24k - wb_df$noc22_24z
 
   # Fill in the leave data
   # First find where the table begins
@@ -398,23 +393,24 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  ##################################### NOW FILL THE REPORT ##########################################
-  options("openxlsx.borderColour" = "#4F80BD")
-  options("openxlsx.borderStyle" = "thin")
-  options("openxlsx.halign" = "center")
-  options("openxlsx.borderStyle" = "thin")
-  modifyBaseFont(rep_wb, fontSize = 10, fontName = "Arial Narrow")
+  # options("openxlsx.borderColour" = "#4F80BD")
+  # options("openxlsx.borderStyle" = "thin")
+  # options("openxlsx.halign" = "center")
+  # options("openxlsx.borderStyle" = "thin")
+  # modifyBaseFont(rep_wb, fontSize = 10, fontName = "Arial Narrow")
+  #
+  # tabHeadStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+  #                             border = "bottom")
+  # tabStyle <- createStyle(halign = "center")
+  # tabFootStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+  #                             border = "top")
+  # infoStyle <- createStyle(textDecoration = "bold")
+  #
+  # # addWorksheet(rep_wb, sheetName = paste(OA, mesec))
+  #
+  # ####################################### OBLIKUJ TABELO
 
-  tabHeadStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
-                              border = "bottom")
-  tabStyle <- createStyle(halign = "center")
-  tabFootStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
-                              border = "top")
-  infoStyle <- createStyle(textDecoration = "bold")
-
-  # addWorksheet(rep_wb, sheetName = paste(OA, mesec))
-
-  ####################################### OBLIKUJ TABELO
+  saveWorkbook(rep_wb, xl_name, overwrite = TRUE)
 }
 
 default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8, "%d. %b. %Y"),
