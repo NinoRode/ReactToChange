@@ -325,6 +325,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$noc00_06k,
+<<<<<<< HEAD
             startCol = 5,
             startRow = 18,
             colNames = FALSE, rowNames = FALSE,
@@ -335,6 +336,12 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   writeFormula(rep_wb, sheet = 1, x = dif_formula,
             startCol = 6,
             startRow = 18
+=======
+                 startCol = 5,
+                 startRow = 18,
+                 colNames = FALSE, rowNames = FALSE,
+                 withFilter = FALSE,
+>>>>>>> 7fcabea681b6ac8e469bedcabdb12c30ef21eadb
   )
 
   writeData(rep_wb, sheet = 1, x = wb_df$dop06_16z,
@@ -351,12 +358,15 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
                  withFilter = FALSE,
   )
 
+<<<<<<< HEAD
   dif_formula <- sprintf("=%s-%s", paste("H", (1:day_num) + 17, sep = ""),  paste("G", (1:day_num) + 17, sep = ""))
   writeFormula(rep_wb, sheet = 1, x = dif_formula,
                startCol = 9,
                startRow = 18
   )
 
+=======
+>>>>>>> 7fcabea681b6ac8e469bedcabdb12c30ef21eadb
   writeData(rep_wb, sheet = 1, x = wb_df$pop16_22z,
                  startCol = 10,
                  startRow = 18,
@@ -390,11 +400,14 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
                  withFilter = FALSE,
   )
 
+<<<<<<< HEAD
   dif_formula <- sprintf("=%s-%s", paste("N", (1:day_num) + 17, sep = ""),  paste("M", (1:day_num) + 17, sep = ""))
   writeFormula(rep_wb, sheet = 1, x = dif_formula,
                startCol = 15,
                startRow = 18
   )
+=======
+>>>>>>> 7fcabea681b6ac8e469bedcabdb12c30ef21eadb
   # Fill in the leave data
   # First find where the table begins
   start_where <- 45 + which("OPRAVLJENE URE" == read.xlsx(
