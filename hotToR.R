@@ -8,6 +8,49 @@ library(RSQLite)
 options(shiny.reactlog = TRUE)
 
 
+EasterDate <- function (year) {
+  #' "A New York correspondent" to the journal Nature in 1876 algorithm,
+  #' also called "Meeus/Jones/Butcher" algorithm
+  #' from https://wiki2.org/en/Computus
+  #'
+  #' @year the year for which the Easter is to be computed.
+  #'
+  #' Returns a date of Easter (of class "Date")
+
+  Y <- as.integer(year)
+  a <- Y %% 19
+  b <- Y %/% 100
+  c <- Y %% 100
+
+  d <- b %/% 4
+  e <- b %% 4
+  f <- (b + 8) %/% 25
+
+  g <- (b - f + 1) %/% 3
+  h <- (19 * a + b - d - g + 15) %% 30
+  i <- c %/% 4
+  k <- c %% 4
+  l <- (32 + 2 * e + 2 * i - h - k) %% 7
+  m <- (a + 11 * h + 22 * l) %/% 451
+
+  month <- (h + l - 7 * m + 114) %/% 31
+  day <- ((h + l - 7 * m + 114) %% 31) + 1
+
+  return(as.Date(sprintf("%d. %d. %d", day, month, Y), "%d. %m. %Y"))
+}
+
+holidaysRS <- function() {
+  easter <- EasterDate(as.integer(format(Sys.Date(), "%Y")))
+
+  holidays <-sort(c(as.Date(c("1.1", "2.1", "8.2", "27.4", "1.5", "2.5", "31.5", "25.6",
+                              "15.8", "1.11", "25.12", "26.12"), "%d.%m"),
+                    easter, easter + 1))
+  holidays
+  return(holidays)
+}
+
+# holidaysRS()
+
 flatten_teden <- function(df) {
   ldf <- as.list(df[, c(3, 4, 6)])
   # Transpose list of lists from https://stackoverflow.com/questions/16179197/transpose-a-list-of-lists
