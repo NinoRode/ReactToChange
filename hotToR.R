@@ -2,11 +2,12 @@ library(shiny)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
+library(tidyxl)
+
 # library(reactlog)
 
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
-
 
 EasterDate <- function (year) {
   #' "A New York correspondent" to the journal Nature in 1876 algorithm,
@@ -319,9 +320,63 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
 
   # Prepare a workbook
 
+  ##################################### tidyxl  #####################################
+  this_month <- paste(toupper(mesec), as.character(Sys.Date(), "%Y"))
+
+  base_wb <- xlsx_cells("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx",
+                        sheets = this_month, include_blank_cells = FALSE)
+
+  # fmting <- xlsx_formats("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx", check_filetype = TRUE)
+
+  rep_formula <-base_wb[!is.na(base_wb$formula), ]
+
+  # rep_text <-base_wb[!is.na(base_wb$character), c("row", "col", "character")]
+
+  # Barva ozadja celic: PRAZNIK: #92D050 SOBOTA, NEDELJA: #FFFF00, PRAZNO (ZAŠČITENO) #DDD9C3 ali #C0C0C0
+  # Barva besedila POMEMBNO #FF0000 ali #FC1621
+
+  write_the_cell <- function(base, pos) {
+    vars <- names(base)
+    if ("col" %in% vars &&
+        "row" %in% vars &&
+        sum(which(c("formula", "numeric", "character", "logical", "date", "error", "blank") %in% vars)) > 0) {
+
+      if (is.na(base_wb$formula[pos])) {
+        to_write <- switch (base$data_type[pos],
+                            numeric = base$numeric[pos],
+                            character = base$character[pos],
+                            logical = base$logical[pos],
+                            date = base$date[pos],
+                            error= base$error[pos],
+                            blank = ""
+        )
+        writeData(wb, sheet = this_month, x = to_write,
+                  startCol = base$col[pos],
+                  startRow = base$row[pos],
+                  colNames = FALSE, rowNames = FALSE
+        )
+      }
+      else {
+        to_write <- paste("=", base$formula[pos], sep = "")
+        writeFormula(wb, sheet = this_month, x = to_write,
+                     startCol = base$col[pos],
+                     startRow = base$row[pos]
+        )
+      }
+    }
+    else {
+      print("inappropriate data")
+    }
+  }
+
+  n <- length(rep_formula$col)
+  lapply(1:n, function (x) write_the_cell(x))
+
+  ##################################### tidyxl  #####################################
+
   rep_wb <- loadWorkbook("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx")
   meseci <- paste(toupper(format(ISOdate(2020, 1:12, 1), "%B")), as.character(Sys.Date(), "%Y"))
-  this_month <- paste(toupper(mesec), as.character(Sys.Date(), "%Y"))
+
   lapply(as.list(meseci), function (x) {
     if (x != this_month) removeWorksheet(rep_wb, x)
   })
