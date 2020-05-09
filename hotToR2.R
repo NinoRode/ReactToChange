@@ -2,55 +2,11 @@ library(shiny)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
-library(tidyxl)
-
 # library(reactlog)
 
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
 
-EasterDate <- function (year) {
-  #' "A New York correspondent" to the journal Nature in 1876 algorithm,
-  #' also called "Meeus/Jones/Butcher" algorithm
-  #' from https://wiki2.org/en/Computus
-  #'
-  #' @year the year for which the Easter is to be computed.
-  #'
-  #' Returns a date of Easter (of class "Date")
-
-  Y <- as.integer(year)
-  a <- Y %% 19
-  b <- Y %/% 100
-  c <- Y %% 100
-
-  d <- b %/% 4
-  e <- b %% 4
-  f <- (b + 8) %/% 25
-
-  g <- (b - f + 1) %/% 3
-  h <- (19 * a + b - d - g + 15) %% 30
-  i <- c %/% 4
-  k <- c %% 4
-  l <- (32 + 2 * e + 2 * i - h - k) %% 7
-  m <- (a + 11 * h + 22 * l) %/% 451
-
-  month <- (h + l - 7 * m + 114) %/% 31
-  day <- ((h + l - 7 * m + 114) %% 31) + 1
-
-  return(as.Date(sprintf("%d. %d. %d", day, month, Y), "%d. %m. %Y"))
-}
-
-holidaysRS <- function() {
-  easter <- EasterDate(as.integer(format(Sys.Date(), "%Y")))
-
-  holidays <-sort(c(as.Date(c("1.1", "2.1", "8.2", "27.4", "1.5", "2.5", "31.5", "25.6",
-                              "15.8", "1.11", "25.12", "26.12"), "%d.%m"),
-                    easter, easter + 1))
-  holidays
-  return(holidays)
-}
-
-# holidaysRS()
 
 flatten_teden <- function(df) {
   ldf <- as.list(df[, c(3, 4, 6)])
@@ -322,9 +278,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
 
   rep_wb <- loadWorkbook("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx")
   meseci <- paste(toupper(format(ISOdate(2020, 1:12, 1), "%B")), as.character(Sys.Date(), "%Y"))
-
   this_month <- paste(toupper(mesec), as.character(Sys.Date(), "%Y"))
-
   lapply(as.list(meseci), function (x) {
     if (x != this_month) removeWorksheet(rep_wb, x)
   })
@@ -441,63 +395,9 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
                startCol = 15,
                startRow = 18
   )
-
-  ##################################### tidyxl  #####################################
-  base_wb <- xlsx_cells("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx",
-                        sheets = this_month, include_blank_cells = FALSE)
-
-  # fmting <- xlsx_formats("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx", check_filetype = TRUE)
-
-  rep_formula <-base_wb[!is.na(base_wb$formula), ]
-
-  # rep_text <-base_wb[!is.na(base_wb$character), c("row", "col", "character")]
-
-  # Barva ozadja celic: PRAZNIK: #92D050 SOBOTA, NEDELJA: #FFFF00, PRAZNO (ZAŠČITENO) #DDD9C3 ali #C0C0C0
-  # Barva besedila POMEMBNO #FF0000 ali #FC1621
-
-  write_the_cell <- function(wb, base, pos) {
-    vars <- names(base)
-
-    if ("col" %in% vars &&
-        "row" %in% vars &&
-        sum(which(c("formula", "numeric", "character", "logical", "date", "error", "blank") %in% vars)) > 0) {
-
-      if (is.na(base$formula[pos])) {
-        to_write <- switch (base$data_type[pos],
-                            numeric = base$numeric[pos],
-                            character = base$character[pos],
-                            logical = base$logical[pos],
-                            date = base$date[pos],
-                            error= base$error[pos],
-                            blank = ""
-        )
-        writeData(wb, sheet = this_month, x = to_write,
-                  startCol = base$col[pos],
-                  startRow = base$row[pos],
-                  colNames = FALSE, rowNames = FALSE
-        )
-      }
-      else {
-        to_write <- paste("=", base$formula[pos], sep = "")
-        writeFormula(wb, sheet = this_month, x = to_write,
-                     startCol = base$col[pos],
-                     startRow = base$row[pos]
-        )
-      }
-    }
-    else {
-      print("inappropriate data")
-    }
-  }
-
-  n <- length(rep_formula$col)
-  lapply(1:n, function (x) write_the_cell(rep_wb, rep_formula, x))
-
-  ##################################### tidyxl  #####################################
-
-    # Fill in the leave data
+  # Fill in the leave data
   # First find where the table begins
-  start_is_here <- 45 + which("OPRAVLJENE URE" == read.xlsx(
+  start_where <- 45 + which("OPRAVLJENE URE" == read.xlsx(
     rep_wb,
     sheet = 1,
     startRow = 46,
@@ -506,27 +406,43 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
     skipEmptyRows = FALSE
   ))
 
-  # print(sum(wb_df$ODSOT == "P"))
   writeData(rep_wb, sheet = 1,
-            x = sum(wb_df$ODSOT == "P"),
+            x = sum(which(wb_df$ODSOT == "P")),
             startCol = 8,
-            startRow = start_is_here + 1,
+            startRow = start_where + 1,
             colNames = FALSE, rowNames = FALSE
   )
 
   writeData(rep_wb, sheet = 1,
-            x = sum(wb_df$ODSOT == "D"),
+            x = sum(which(wb_df$ODSOT == "D")),
             startCol = 8,
-            startRow = start_is_here + 2,
+            startRow = start_where + 2,
             colNames = FALSE, rowNames = FALSE
   )
 
   writeData(rep_wb, sheet = 1,
-            x = sum(wb_df$ODSOT == "B"),
+            x = sum(which(wb_df$ODSOT == "B")),
             startCol = 8,
-            startRow = start_is_here + 3,
+            startRow = start_where + 3,
             colNames = FALSE, rowNames = FALSE
   )
+
+  # options("openxlsx.borderColour" = "#4F80BD")
+  # options("openxlsx.borderStyle" = "thin")
+  # options("openxlsx.halign" = "center")
+  # options("openxlsx.borderStyle" = "thin")
+  # modifyBaseFont(rep_wb, fontSize = 10, fontName = "Arial Narrow")
+  #
+  # tabHeadStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+  #                             border = "bottom")
+  # tabStyle <- createStyle(halign = "center")
+  # tabFootStyle <- createStyle(halign = "center", borderStyle = "thin", textDecoration = "bold",
+  #                             border = "top")
+  # infoStyle <- createStyle(textDecoration = "bold")
+  #
+  # # addWorksheet(rep_wb, sheetName = paste(OA, mesec))
+  #
+  # ####################################### OBLIKUJ TABELO
 
   saveWorkbook(rep_wb, xl_name, overwrite = TRUE)
 }
