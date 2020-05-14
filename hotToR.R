@@ -542,53 +542,116 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
                          stringsAsFactors = FALSE)
 
 ############################# UI #############################
+#
+# ui = shinyUI(fluidPage(
+#   fluidRow(
+#     column(8, offset = 2, allign = "center",
+#            h2(textOutput("title")))),
+#   fluidRow(
+#     h3(column(6, offset = 4, allign = "center",
+#            selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
+#   fluidRow(
+#     column(6,
+#            dateInput("teden", "Izberi teden:",
+#                      value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+#                      format = "DD, dd. M. yyyy",
+#                      language = "sl",
+#                      weekstart = 1),
+#            selectInput("izbor", "ali Izberi teden iz baze:",
+#                        choices = as.character(
+#                          Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+#                          "%d. %b. %Y"))
+#     ),
+#     column(6,
+#            actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
+#            selectInput(inputId="report",label="Za:",
+#                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
+#                        selected = format(Sys.Date(), "%B"))
+#     )
+#   ),
+#   fluidRow(wellPanel(
+#     column(6,
+#            rHandsontableOutput("hot"),
+#            textOutput("sum_w_hours"),
+#            textOutput("sum_P_hours"),
+#            textOutput("sum_D_hours"),
+#            textOutput("sum_B_hours"),
+#            textOutput("sum_all_hours")
+#     ),
+#
+#     column(6,
+#            tableOutput("tabela"),
+#     ))),
+#
+#   fluidRow(wellPanel(
+#     column(6,
+#            actionButton(inputId="enter",label="Shrani urnik")
+#     )
+#   ))
+# ))
 
-ui = shinyUI(fluidPage(
-  fluidRow(
-    column(8, offset = 2, allign = "center",
-           h2(textOutput("title")))),
-  fluidRow(
-    h3(column(6, offset = 4, allign = "center",
-           selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
-  fluidRow(
-    column(6,
-           dateInput("teden", "Izberi teden:",
-                     value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                     format = "DD, dd. M. yyyy",
-                     language = "sl",
-                     weekstart = 1),
-           selectInput("izbor", "ali Izberi teden iz baze:",
-                       choices = as.character(
-                         Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                         "%d. %b. %Y"))
+############################# UI #############################
+
+ui = shinyUI(
+  fluidPage(
+    fluidRow(
+      column(4, allign = "center",
+             # JS to calculate dimensions of thw window and display ratio
+             # from: https://stackoverflow.com/questions/36995142/get-the-size-of-the-window-in-shiny
+             tags$head(tags$script('
+                                var dimension = 0;
+                                $(document).on("shiny:connected", function(e) {
+                                    dimension = window.innerWidth
+                                    Shiny.setInputValue("dimension", dimension, {priority: "event"});
+                                });
+                                $(window).resize(function(e) {
+                                    dimension = window.innerWidth
+                                   Shiny.setInputValue("dimension", dimension, {priority: "event"});
+                                });
+                            ')),
+
+
+             textOutput("title"),
+             verbatimTextOutput("dimension_display"),
+      ),
+      column(4, allign = "center",
+             selectInput("OA", NULL, choices = list("Lucija Metelko", "Ana Ljubi"), width = "100%"),
+      ),
+      column(4, allign = "center",
+             dateInput("teden", NULL,
+                       value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                       format = "DD, dd. M. yyyy",
+                       language = "sl",
+                       weekstart = 1,
+                       width = "100%",
+                       daysofweekdisabled = c(0, 2:6))
+      )
     ),
-    column(6,
-           actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
-           selectInput(inputId="report",label="Za:",
-                       choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
-                       selected = format(Sys.Date(), "%B"))
-    )
-  ),
-  fluidRow(wellPanel(
-    column(6,
-           rHandsontableOutput("hot"),
-           textOutput("sum_w_hours"),
-           textOutput("sum_P_hours"),
-           textOutput("sum_D_hours"),
-           textOutput("sum_B_hours"),
-           textOutput("sum_all_hours")
-    ),
 
-    column(6,
-           tableOutput("tabela"),
-    ))),
+    fluidRow(wellPanel(
+      column(8, allign = "center",
+             rHandsontableOutput("hot"),
+             fluidRow(
+               column(6, allign = "center",
+                      actionButton(inputId="enter",label="Shrani urnik", width = "100%")
+               ),
+               column(6, allign = "center",
+                      actionButton(inputId="do_report",label="Pripravi listo prisotnosti", width = "100%"),
+               ))
 
-  fluidRow(wellPanel(
-    column(6,
-           actionButton(inputId="enter",label="Shrani urnik")
-    )
+      ),
+
+      column(4,
+             p("Ure:"),
+             textOutput("sum_w_hours"),
+             textOutput("sum_P_hours"),
+             textOutput("sum_D_hours"),
+             textOutput("sum_B_hours"),
+             textOutput("sum_all_hours")
+      )))
   ))
-))
+
+#------------------------------------------------------------#
 
 ########################## SEREVER ###########################
 
