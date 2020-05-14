@@ -71,14 +71,40 @@ flatten_teden <- function(df) {
   return(skup_df)
 }
 
-build_teden <- function(df) {
+# build_teden <- function(df) {
+#   # Builds the table for display
+#   zac_tedna <- as.Date(df$dat,  "%d. %b. %Y")
+#
+#   tdn <- seq(zac_tedna, by = "day", length.out = 7)
+#   teden_df <- data.frame("dan" = weekdays(tdn))
+#   teden_df$datum <- as.character(tdn, "%e. %b. %Y")
+#
+#   m <- list(df[grepl("prihod", names(df))], df[grepl("odhod", names(df))], df[grepl("opomba", names(df))])
+#   teden_df$prihod <- unlist(m[1])
+#   teden_df$prihod <- as.numeric(teden_df$prihod)
+#
+#   teden_df$odhod <- unlist(m[2])
+#   teden_df$odhod <- as.numeric(teden_df$odhod)
+#
+#   teden_df$ure <- teden_df$odhod - teden_df$prihod
+#   # teden_df$ure[is.na(teden_df$ure)] <-  0
+#
+#   teden_df$opomba <- factor(unlist(m[3]),
+#                             levels = c("-", "prosto", "bolniška", "dopust",
+#                                        "sobota", "nedelja", "praznik",
+#                                        "izobraževanje"))
+#   return(teden_df)
+# }
+
+build_teden <- function(df, display_width) {
   # Builds the table for display
   zac_tedna <- as.Date(df$dat,  "%d. %b. %Y")
 
   tdn <- seq(zac_tedna, by = "day", length.out = 7)
-  teden_df <- data.frame("dan" = weekdays(tdn))
-  teden_df$datum <- as.character(tdn, "%e. %b. %Y")
-
+  teden_df <- data.frame("datum" = as.character(tdn, "%e. %b %Y"))
+  if (display_width < 620) {
+    teden_df$datum <- as.character(tdn, "%e. %m. ")
+  }
   m <- list(df[grepl("prihod", names(df))], df[grepl("odhod", names(df))], df[grepl("opomba", names(df))])
   teden_df$prihod <- unlist(m[1])
   teden_df$prihod <- as.numeric(teden_df$prihod)
@@ -87,12 +113,12 @@ build_teden <- function(df) {
   teden_df$odhod <- as.numeric(teden_df$odhod)
 
   teden_df$ure <- teden_df$odhod - teden_df$prihod
-  # teden_df$ure[is.na(teden_df$ure)] <-  0
 
   teden_df$opomba <- factor(unlist(m[3]),
                             levels = c("-", "prosto", "bolniška", "dopust",
                                        "sobota", "nedelja", "praznik",
                                        "izobraževanje"))
+  rownames(teden_df) <- c("Po", "To", "Sr", "Če", "Pe", "So", "Ne")
   return(teden_df)
 }
 
@@ -238,7 +264,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   rep_num <- length(rep_df$dat)
   ted_df <- data.frame()
   for (i in 1:rep_num) {
-    ted_df <- rbind(build_teden(rep_df[i, ]), ted_df)
+    ted_df <- rbind(build_teden(rep_df[i, ], isolate(display_dimensions())), ted_df)
   }
   mes <- seq.Date(as.Date(paste("1.", mesec, as.character(Sys.Date(), "%Y")), "%d. %B %Y"), by = "month", length.out = 2)
 
@@ -595,7 +621,7 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
 ############################# UI #############################
 
 ui = shinyUI(
-  fluidPage(
+  fluidPage(title = "Urniki dela za osebne asistente",
     fluidRow(
       column(4, allign = "center",
              # JS to calculate dimensions of thw window and display ratio
@@ -638,10 +664,10 @@ ui = shinyUI(
                       actionButton(inputId="enter",label="Shrani urnik", width = "100%"),
                       bsModal("urnik", "Shrani urnik", "enter",
                               h4(textOutput("title_urnik")),
-            selectInput("izbor", "Shrani v taden:",    ############ preglej: samo datum mora spremeniti ###########
-                        choices = as.character(
-                          Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                          "%d. %b. %Y")),
+                              selectInput("izbor", "Shrani v taden:",    ############ preglej: samo datum mora spremeniti ###########
+                                          choices = as.character(
+                                            Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                                            "%d. %b. %Y")),
                               actionButton(inputId="really_save", label="Shrani"),
                               size = "small")
                ),
@@ -786,8 +812,10 @@ server=function(input,output, session){
     fl_df
   })
 
+  display_dimensions <- reactive(input$dimension)
+
   teden_df <- reactive({
-    build_teden(flat_df())
+    build_teden(flat_df(), isolate(display_dimensions()))
   })
 
   output$tabela <- renderTable(teden_df())
@@ -842,9 +870,9 @@ server=function(input,output, session){
       #If the changed value is prihod or odhod
 
       if(is.numeric(new.val) && (col.no == 2 || col.no == 3))
-        datacopy[(row.no+1), 6] <- "-"
+        datacopy[(row.no+1), 5] <- "-"
 
-      datacopy[, 5] <- datacopy[, 4] - datacopy[, 3]
+      datacopy[, 4] <- datacopy[, 3] - datacopy[, 2]
     }
 
     OA_change(FALSE)
@@ -853,26 +881,28 @@ server=function(input,output, session){
 
   })
 
+  col_widths = c(100, 43, 45, 45, 106)
+  if (isolate(display_dimensions()) < 620) col_widths[1] <- 56
 
     hott <- reactive(hot_validate_numeric(
                       hot_col(
                         hot_col(
                           hot_cols(
-                            rhandsontable(za_teden()),
-                          colWidths = c(100, 100, 60, 60, 60, 120)),
-                        col = c(1, 2, 5), halign = "htRight", readOnly = TRUE),
-                      col = 6, halign = "htRight"),
-                    col = c(3, 4), min = 0, max = 24))
+                            rhandsontable(za_teden(), stretchH = "all"),
+                          colWidths = col_widths),
+                        col = c(1, 4), halign = "htRight", readOnly = TRUE),
+                      col = 5, halign = "htCenter"),
+                    col = c(2, 3), min = 0, max = 24))
 
   output$hot <- renderRHandsontable({
     hott()
   })
 
   observe({
-  w_hours <- sum(za_teden()[, 5], na.rm = TRUE)
-  P_hours <- sum(za_teden()[, 6] == "praznik", na.rm = TRUE) * 8
-  D_hours <- sum(za_teden()[, 6] == "dopust", na.rm = TRUE) * 8
-  B_hours <- sum(za_teden()[, 6] == "bolniška", na.rm = TRUE) * 8
+  w_hours <- sum(za_teden()[, 4], na.rm = TRUE)
+  P_hours <- sum(za_teden()[, 5] == "praznik", na.rm = TRUE) * 8
+  D_hours <- sum(za_teden()[, 5] == "dopust", na.rm = TRUE) * 8
+  B_hours <- sum(za_teden()[, 5] == "bolniška", na.rm = TRUE) * 8
 
   all_hours <- w_hours + P_hours + D_hours + B_hours
 
