@@ -635,7 +635,15 @@ ui = shinyUI(
              rHandsontableOutput("hot"),
              fluidRow(
                column(6, allign = "center",
-                      actionButton(inputId="enter",label="Shrani urnik", width = "100%")
+                      actionButton(inputId="enter",label="Shrani urnik", width = "100%"),
+                      bsModal("urnik", "Shrani urnik", "enter",
+                              h4(textOutput("title_urnik")),
+            selectInput("izbor", "Shrani v taden:",    ############ preglej: samo datum mora spremeniti ###########
+                        choices = as.character(
+                          Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                          "%d. %b. %Y")),
+                              actionButton(inputId="really_save", label="Shrani"),
+                              size = "small")
                ),
                column(6, allign = "center",
                       actionButton(inputId="do_report",label="Pripravi listo prisotnosti", width = "100%"),
@@ -875,7 +883,7 @@ server=function(input,output, session){
   output$sum_all_hours <-  renderText(c("Skupno število ur ta teden", all_hours))
   })
 
-  observeEvent(input$enter, {
+  observeEvent(input$really_save, {
 
     sav_teden_df <-hot_to_r(input$hot)
     sav_teden_df$opomba <- as.character(sav_teden_df$opomba)
