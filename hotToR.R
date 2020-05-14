@@ -1,4 +1,6 @@
 library(shiny)
+library(shinyBS)
+library(shinyWidgets)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
@@ -637,8 +639,15 @@ ui = shinyUI(
                ),
                column(6, allign = "center",
                       actionButton(inputId="do_report",label="Pripravi listo prisotnosti", width = "100%"),
-               ))
-
+                      bsModal("prisotnost", "Lista prisotnosti", "do_report",
+                              h4(textOutput("title_report")),
+                              selectInput(inputId="report",label="za mesec:",
+                                          choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
+                                          selected = format(Sys.Date(), "%B")),
+                              actionButton(inputId="really_do_report", label="Pripravi"),
+                              size = "small")
+               )
+             )
       ),
 
       column(4,
@@ -648,8 +657,10 @@ ui = shinyUI(
              textOutput("sum_D_hours"),
              textOutput("sum_B_hours"),
              textOutput("sum_all_hours")
-      )))
-  ))
+      )
+    ))
+  )
+)
 
 #------------------------------------------------------------#
 
@@ -671,6 +682,7 @@ server=function(input,output, session){
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
   output$title <- renderText(c("Tabela za OA: ", input$OA, ", v tednu od ", as.character(input$teden, "%d. %b. %Y")))
+  output$title_report <- renderText(c("Poročilo o prisotnosti za OA:\n", input$OA))
   output$tabela <- renderText(table_name())
 
   sql_name <- paste(getwd(), "/", "Matjaz_Metelko.sqlite", sep = "")
@@ -714,7 +726,7 @@ server=function(input,output, session){
     updateDateInput(session, "teden", value = zac_tedna())
   })
 
-  observeEvent(input$do_report, {
+  observeEvent(input$really_do_report, {
     date_rec <- unlist(getDates(sql_name, table_name()))
     num_rec <- length(date_rec)
     val <- sapply(1:num_rec, function (i) {
