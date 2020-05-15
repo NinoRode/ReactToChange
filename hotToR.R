@@ -1,15 +1,10 @@
 library(shiny)
 library(shinyBS)
-library(shinyWidgets)
+# library(shinyWidgets)
 library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
 library(tidyxl)
-
-# library(reactlog)
-
-# tell shiny to log all reactivity
-options(shiny.reactlog = TRUE)
 
 EasterDate <- function (year) {
   #' "A New York correspondent" to the journal Nature in 1876 algorithm,
@@ -71,30 +66,6 @@ flatten_teden <- function(df) {
   return(skup_df)
 }
 
-# build_teden <- function(df) {
-#   # Builds the table for display
-#   zac_tedna <- as.Date(df$dat,  "%d. %b. %Y")
-#
-#   tdn <- seq(zac_tedna, by = "day", length.out = 7)
-#   teden_df <- data.frame("dan" = weekdays(tdn))
-#   teden_df$datum <- as.character(tdn, "%e. %b. %Y")
-#
-#   m <- list(df[grepl("prihod", names(df))], df[grepl("odhod", names(df))], df[grepl("opomba", names(df))])
-#   teden_df$prihod <- unlist(m[1])
-#   teden_df$prihod <- as.numeric(teden_df$prihod)
-#
-#   teden_df$odhod <- unlist(m[2])
-#   teden_df$odhod <- as.numeric(teden_df$odhod)
-#
-#   teden_df$ure <- teden_df$odhod - teden_df$prihod
-#   # teden_df$ure[is.na(teden_df$ure)] <-  0
-#
-#   teden_df$opomba <- factor(unlist(m[3]),
-#                             levels = c("-", "prosto", "bolniška", "dopust",
-#                                        "sobota", "nedelja", "praznik",
-#                                        "izobraževanje"))
-#   return(teden_df)
-# }
 
 build_teden <- function(df, display_width) {
   # Builds the table for display
@@ -283,7 +254,6 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
                       noc22_24z = numeric(), noc22_24k = numeric(), ur22_24 = numeric()
   )[1:day_num, ]
 
-  # wb_df$DAT <- as.numeric(as.character(as.Date(ted_df$datum, "%e. %b. %Y"), "%d"))
   wb_df$DAT <- c(1:length(wb_df$DAT))
 
   wb_df$ODSOT <- as.character(ted_df$opomba)
@@ -365,12 +335,6 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
             startRow = 18,
             colNames = FALSE, rowNames = FALSE
   )
-
-  # saveWorkbook(rep_wb, xl_name, overwrite = TRUE)
-  #
-  # loadWorkbook(xl_name)
-
-  #Fill in the report with data and formulae
 
   writeData(rep_wb, sheet = 1,
             x = isolate(OA),
@@ -474,11 +438,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   base_wb <- xlsx_cells("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx",
                         sheets = this_month, include_blank_cells = FALSE)
 
-  # fmting <- xlsx_formats("/home/nino/Dokumenti/Matjaz/OA/PRISOTNOST ASISTENTI 2020.xlsx", check_filetype = TRUE)
-
   rep_formula <-base_wb[!is.na(base_wb$formula), ]
-
-  # rep_text <-base_wb[!is.na(base_wb$character), c("row", "col", "character")]
 
   # Barva ozadja celic: PRAZNIK: #92D050 SOBOTA, NEDELJA: #FFFF00, PRAZNO (ZAŠČITENO) #DDD9C3 ali #C0C0C0
   # Barva besedila POMEMBNO #FF0000 ali #FC1621
@@ -521,7 +481,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   n <- length(rep_formula$col)
   lapply(1:n, function (x) write_the_cell(rep_wb, rep_formula, x))
 
-  ##################################### tidyxl  #####################################
+  #---------------------------------------------------------------------------------#
 
     # Fill in the leave data
   # First find where the table begins
@@ -570,60 +530,11 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
                          stringsAsFactors = FALSE)
 
 ############################# UI #############################
-#
-# ui = shinyUI(fluidPage(
-#   fluidRow(
-#     column(8, offset = 2, allign = "center",
-#            h2(textOutput("title")))),
-#   fluidRow(
-#     h3(column(6, offset = 4, allign = "center",
-#            selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
-#   fluidRow(
-#     column(6,
-#            dateInput("teden", "Izberi teden:",
-#                      value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-#                      format = "DD, dd. M. yyyy",
-#                      language = "sl",
-#                      weekstart = 1),
-#            selectInput("izbor", "ali Izberi teden iz baze:",
-#                        choices = as.character(
-#                          Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-#                          "%d. %b. %Y"))
-#     ),
-#     column(6,
-#            actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
-#            selectInput(inputId="report",label="Za:",
-#                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
-#                        selected = format(Sys.Date(), "%B"))
-#     )
-#   ),
-#   fluidRow(wellPanel(
-#     column(6,
-#            rHandsontableOutput("hot"),
-#            textOutput("sum_w_hours"),
-#            textOutput("sum_P_hours"),
-#            textOutput("sum_D_hours"),
-#            textOutput("sum_B_hours"),
-#            textOutput("sum_all_hours")
-#     ),
-#
-#     column(6,
-#            tableOutput("tabela"),
-#     ))),
-#
-#   fluidRow(wellPanel(
-#     column(6,
-#            actionButton(inputId="enter",label="Shrani urnik")
-#     )
-#   ))
-# ))
-
-############################# UI #############################
 
 ui = shinyUI(
   fluidPage(title = "Urniki dela za osebne asistente",
-    fluidRow(
-      column(4, allign = "center",
+            fluidRow(
+              column(12, allign = "center",
              # JS to calculate dimensions of thw window and display ratio
              # from: https://stackoverflow.com/questions/36995142/get-the-size-of-the-window-in-shiny
              tags$head(tags$script('
@@ -639,60 +550,66 @@ ui = shinyUI(
                             ')),
 
 
-             textOutput("title"),
-             verbatimTextOutput("dimension_display"),
-      ),
-      column(4, allign = "center",
-             selectInput("OA", NULL, choices = list("Lucija Metelko", "Ana Ljubi"), width = "100%"),
-      ),
-      column(4, allign = "center",
-             dateInput("teden", NULL,
-                       value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                       format = "DD, dd. M. yyyy",
-                       language = "sl",
-                       weekstart = 1,
-                       width = "100%",
-                       daysofweekdisabled = c(0, 2:6))
-      )
-    ),
-
-    fluidRow(wellPanel(
-      column(8, allign = "center",
-             rHandsontableOutput("hot"),
-             fluidRow(
-               column(6, allign = "center",
-                      actionButton(inputId="enter",label="Shrani urnik", width = "100%"),
-                      bsModal("urnik", "Shrani urnik", "enter",
-                              h4(textOutput("title_urnik")),
-                              selectInput("izbor", "Shrani v taden:",    ############ preglej: samo datum mora spremeniti ###########
-                                          choices = as.character(
-                                            Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                                            "%d. %b. %Y")),
-                              actionButton(inputId="really_save", label="Shrani"),
-                              size = "small")
+             h2(textOutput("title"), style="text-align: center;")
+      )),
+      fluidRow(
+        column(8,
+               fluidRow(
+                 column(3, offset = 2, allign = "center",
+                        selectInput("OA", NULL, choices = list("Lucija Metelko", "Ana Ljubi"), width = "100%"),
+                 ),
+                 column(3, offset = 2, allign = "center",
+                        dateInput("teden", NULL,
+                                  value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                                  format = "DD, dd. M. yyyy",
+                                  language = "sl",
+                                  weekstart = 1,
+                                  width = "100%",
+                                  daysofweekdisabled = c(0, 2:6))
+                 )
                ),
-               column(6, allign = "center",
-                      actionButton(inputId="do_report",label="Pripravi listo prisotnosti", width = "100%"),
-                      bsModal("prisotnost", "Lista prisotnosti", "do_report",
-                              h4(textOutput("title_report")),
-                              selectInput(inputId="report",label="za mesec:",
-                                          choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
-                                          selected = format(Sys.Date(), "%B")),
-                              actionButton(inputId="really_do_report", label="Pripravi"),
-                              size = "small")
-               )
-             )
-      ),
 
-      column(4,
-             p("Ure:"),
-             textOutput("sum_w_hours"),
-             textOutput("sum_P_hours"),
-             textOutput("sum_D_hours"),
-             textOutput("sum_B_hours"),
-             textOutput("sum_all_hours")
+               fluidRow(
+                 column(12, allign = "center",
+                        rHandsontableOutput("hot"),
+                        fluidRow(
+                          column(6, allign = "center",
+                                 actionButton(inputId="enter",label="Shrani urnik", width = "100%"),
+                                 bsModal("urnik", "Shrani urnik", "enter",
+                                         h4(textOutput("title_urnik")),
+                                         selectInput("izbor", "Shrani v taden:",    ############ preglej: samo datum mora spremeniti ###########
+                                                     choices = as.character(
+                                                       Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                                                       "%d. %b. %Y")),
+                                         actionButton(inputId="really_save", label="Shrani"),
+                                         size = "small")
+                          ),
+                          column(6, allign = "center",
+                                 actionButton(inputId="do_report",label="Pripravi listo prisotnosti", width = "100%"),
+                                 bsModal("prisotnost", "Lista prisotnosti", "do_report",
+                                         h4(textOutput("title_report")),
+                                         selectInput(inputId="report",label="za mesec:",
+                                                     choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
+                                                     selected = format(Sys.Date(), "%B")),
+                                         actionButton(inputId="really_do_report", label="Pripravi"),
+                                         size = "small")
+                          )
+                        )
+                 )
+               )),
+
+        column(4,
+               h3("Ure:"),
+               br(),
+               h4(
+                 textOutput("sum_w_hours"),
+                 textOutput("sum_P_hours"),
+                 textOutput("sum_D_hours"),
+                 textOutput("sum_B_hours"),
+                 textOutput("sum_all_hours")
+               )
+        )
       )
-    ))
   )
 )
 
@@ -715,7 +632,7 @@ server=function(input,output, session){
   # Prepare empty default data frame (this will go out of server)
 
   table_name <- reactive(paste(unlist(strsplit(input$OA, " ")), collapse = ""))
-  output$title <- renderText(c("Tabela za OA: ", input$OA, ", v tednu od ", as.character(input$teden, "%d. %b. %Y")))
+  output$title <- renderText("Urnik dela za osebnega/o asistenta/ko")
   output$title_report <- renderText(c("Poročilo o prisotnosti za OA:\n", input$OA))
   output$tabela <- renderText(table_name())
 
@@ -906,11 +823,11 @@ server=function(input,output, session){
 
   all_hours <- w_hours + P_hours + D_hours + B_hours
 
-  output$sum_w_hours <- renderText(c("Število delovnih ur ta teden: ", w_hours))
-  output$sum_P_hours <- renderText(c("Število prazničnih ur ta teden: ", P_hours))
-  output$sum_D_hours <- renderText(c("Število ur iz dopusta ta teden: ", D_hours))
-  output$sum_B_hours <- renderText(c("Število ur bolnioške odsotnosti ta teden: ", B_hours))
-  output$sum_all_hours <-  renderText(c("Skupno število ur ta teden", all_hours))
+  output$sum_w_hours <- renderText(c("Delo: ", w_hours))
+  output$sum_P_hours <- renderText(c("Praznik: ", P_hours))
+  output$sum_D_hours <- renderText(c("Dopust: ", D_hours))
+  output$sum_B_hours <- renderText(c("Bolnioška odsotnost: ", B_hours))
+  output$sum_all_hours <-  renderText(c("Skupno število ur:", all_hours))
   })
 
   observeEvent(input$really_save, {
