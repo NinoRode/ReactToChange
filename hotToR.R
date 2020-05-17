@@ -538,7 +538,7 @@ ui = shinyUI(
              # JS to calculate dimensions of thw window and display ratio
              # from: https://stackoverflow.com/questions/36995142/get-the-size-of-the-window-in-shiny
              tags$head(
-               tags$link(rel = "stylesheet", type = "text/css", href = "bootstrap.css"),
+               # tags$link(rel = "stylesheet", type = "text/css", href = "bootstrap.min.css"),
                tags$script('
                                 var dimension = 0;
                                 $(document).on("shiny:connected", function(e) {
