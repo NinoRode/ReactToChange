@@ -1,10 +1,11 @@
 library(shiny)
 library(shinyBS)
-# library(shinyWidgets)
-library(rhandsontable)
-library(openxlsx)
-library(RSQLite)
+library(shinythemes)
+# library(bootstraplib)
 library(tidyxl)
+library(openxlsx)
+library(rhandsontable)
+library(RSQLite)
 
 EasterDate <- function (year) {
   #' "A New York correspondent" to the journal Nature in 1876 algorithm,
@@ -532,9 +533,12 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
 ############################# UI #############################
 
 ui = shinyUI(
-  fluidPage(title = "Urniki dela za osebne asistente",
-            fluidRow(
-              column(12, allign = "center",
+  fluidPage(
+    # shinythemes::themeSelector(),
+    theme = shinytheme("spacelab"),
+    title = "Urniki dela za osebne asistente",
+    fluidRow(
+      column(12, allign = "center",
              # JS to calculate dimensions of thw window and display ratio
              # from: https://stackoverflow.com/questions/36995142/get-the-size-of-the-window-in-shiny
              tags$head(
@@ -554,7 +558,7 @@ ui = shinyUI(
 
              h2(textOutput("title"), style="text-align: center;")
       )),
-      fluidRow(
+    fluidRow(
         column(8,
                fluidRow(
                  column(3, offset = 2, allign = "center",
