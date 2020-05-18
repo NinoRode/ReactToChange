@@ -1,6 +1,6 @@
 library(shiny)
 library(shinyBS)
-library(shinythemes)
+# library(shinythemes)
 # library(bootstraplib)
 library(tidyxl)
 library(openxlsx)
@@ -535,7 +535,9 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
 ui = shinyUI(
   fluidPage(
     # shinythemes::themeSelector(),
-    theme = shinytheme("spacelab"),
+    # bs_theme_new(bootswatch="spacelab"),
+    #theme = shinytheme("spacelab"),
+    theme = "bootstrap.css",
     title = "Urniki dela za osebne asistente",
     fluidRow(
       column(12, allign = "center",
@@ -626,6 +628,7 @@ ui = shinyUI(
 server=function(input,output, session){
 
   options(warn = -1)
+  # bootstraplib::bs_themer()
 
   ne_delovni <- c("prosto", "praznik", "dopust", "sobota", "nedelja", "izobraževanje")
   OA_change <- reactiveVal(FALSE)
