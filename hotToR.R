@@ -537,7 +537,7 @@ ui = shinyUI(
     # shinythemes::themeSelector(),
     # bs_theme_new(bootswatch="spacelab"),
     #theme = shinytheme("spacelab"),
-    theme = "bootstrap.css",
+    theme = "custom-theme.css",
     title = "Urniki dela za osebne asistente",
     fluidRow(
       column(12, allign = "center",
