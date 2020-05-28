@@ -668,7 +668,7 @@ server=function(input,output, session){
     updateSelectInput(session, "izbor", choices = ch)
   })
 
-  ####################################### Tole je tereba spremeniti tako, da samo spremeni teden v zapisu
+  ####################################### Tole je treba spremeniti tako, da samo spremeni teden v zapisu
   observeEvent(input$izbor, {
     val <-as.Date(isolate(input$izbor), "%d. %b. %Y")
     updateDateInput(session, "teden", value = val)
