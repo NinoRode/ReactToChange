@@ -563,13 +563,13 @@ ui = shinyUI(
     fluidRow(
         column(8,
                fluidRow(
-                 column(3, offset = 2, allign = "center",
+                 column(4, offset = 2, allign = "center",
                         selectInput("OA", NULL, choices = list("Lucija Metelko", "Ana Ljubi"), width = "100%"),
                  ),
-                 column(3, offset = 2, allign = "center",
+                 column(4, offset = 1, allign = "center",
                         dateInput("teden", NULL,
                                   value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                                  format = "DD, dd. M. yyyy",
+                                  format = "DD, dd. M yyyy",
                                   language = "sl",
                                   weekstart = 1,
                                   width = "100%",
@@ -585,7 +585,7 @@ ui = shinyUI(
                                  actionButton(inputId="enter",label="Shrani urnik", width = "100%"),
                                  bsModal("urnik", "Shrani urnik", "enter",
                                          h4(textOutput("title_urnik")),
-                                         selectInput("izbor", "Shrani v taden:",    ############ preglej: samo datum mora spremeniti ###########
+                                         selectInput("izbor", "Shrani v teden:",    ############ preglej: samo datum mora spremeniti ###########
                                                      choices = as.character(
                                                        Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
                                                        "%d. %b. %Y")),
@@ -613,11 +613,13 @@ ui = shinyUI(
                  textOutput("sum_w_hours"),
                  textOutput("sum_P_hours"),
                  textOutput("sum_D_hours"),
-                 textOutput("sum_B_hours"),
+                 textOutput("sum_B_hours")),
+               br(),
+               h3(
                  textOutput("sum_all_hours")
                )
         )
-      )
+    )
   )
 )
 
@@ -688,6 +690,8 @@ server=function(input,output, session){
   })
 
   observeEvent(input$really_do_report, {
+    toggleModal(session, "prisotnost", toggle = "close")
+
     date_rec <- unlist(getDates(sql_name, table_name()))
     num_rec <- length(date_rec)
     val <- sapply(1:num_rec, function (i) {
@@ -838,11 +842,13 @@ server=function(input,output, session){
     output$sum_w_hours <- renderText(c("Delo: ", w_hours))
     output$sum_P_hours <- renderText(c("Praznik: ", P_hours))
     output$sum_D_hours <- renderText(c("Dopust: ", D_hours))
-    output$sum_B_hours <- renderText(c("Bolnioška odsotnost: ", B_hours))
+    output$sum_B_hours <- renderText(c("Bolniška odsotnost: ", B_hours))
     output$sum_all_hours <-  renderText(c("Skupno število ur:", all_hours))
   })
 
   observeEvent(input$really_save, {
+
+    toggleModal(session, "urnik", toggle = "close")
 
     sav_teden_df <-hot_to_r(input$hot)
     sav_teden_df$opomba <- as.character(sav_teden_df$opomba)
