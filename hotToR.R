@@ -51,7 +51,7 @@ holidaysRS <- function() {
 # holidaysRS()
 
 flatten_teden <- function(df) {
-  ldf <- as.list(df[, c(3, 4, 6)])
+  ldf <- as.list(df[, c(2, 3, 5)]) ################## popravi kolone
   # Transpose list of lists from https://stackoverflow.com/questions/16179197/transpose-a-list-of-lists
   n <- length(ldf[[1]])
   vr <- lapply(1:n, function(i) lapply(ldf, "[[", i))
@@ -180,8 +180,9 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
             colNames = FALSE, rowNames = FALSE
   )
 
-  prvi <- as.Date(teden_df$dat[1],  "%d. %b. %Y")
-  zadnji <- as.Date(teden_df$dat[7],  "%d. %b. %Y")
+  prvi <- as.Date(teden_df$dat[1],  "%d. %b %Y")
+  zadnji <- as.Date(teden_df$dat[7],  "%d. %b %Y")
+
   od_dne <- paste(format(prvi, "%d. "), meseca[as.numeric(format(prvi, "%m"))])
   do_dne <- paste(format(zadnji, "%d. "), meseca[as.numeric(format(zadnji, "%m"))])
   writeData(wb, sheet = 1, x = c(od_dne, do_dne),
@@ -229,14 +230,14 @@ saveXcllWb <- function(OA, teden_df, file_name = NULL) {
   }
 }
 
-saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
+saveXcllRprt<- function(OA, mesec, display_dimension, rep_df, xl_name) {
 
   #Prepare data frame for the report
   rep_df <- rep_df[order(as.Date(rep_df$dat, "%d. %b. %Y")), ]
   rep_num <- length(rep_df$dat)
   ted_df <- data.frame()
   for (i in 1:rep_num) {
-    ted_df <- rbind(build_teden(rep_df[i, ], isolate(display_dimensions())), ted_df)
+    ted_df <- rbind(build_teden(rep_df[i, ], isolate(display_dimension)), ted_df)
   }
   mes <- seq.Date(as.Date(paste("1.", mesec, as.character(Sys.Date(), "%Y")), "%d. %B %Y"), by = "month", length.out = 2)
 
@@ -495,7 +496,6 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
     skipEmptyRows = FALSE
   ))
 
-  # print(sum(wb_df$ODSOT == "P"))
   writeData(rep_wb, sheet = 1,
             x = sum(wb_df$ODSOT == "P"),
             startCol = 8,
@@ -636,7 +636,7 @@ server=function(input,output, session){
   zac_tedna <-  reactive(input$teden - as.numeric(format(input$teden, "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
   observe(
     updateDateInput(session, "teden", value = zac_tedna())
-    )
+  )
 
   # Prepare empty default data frame (this will go out of server)
 
@@ -670,7 +670,7 @@ server=function(input,output, session){
   observeEvent(input$izbor, {
     val <-as.Date(isolate(input$izbor), "%d. %b. %Y")
     updateDateInput(session, "teden", value = val)
-    })
+  })
 
   observeEvent(input$copy, {
     zac_tedna <- (isolate(input$copy) - as.numeric(format(isolate(input$copy), "%u")) + 1) # postavi na začetek tedna (+1, ne +8)
@@ -715,7 +715,9 @@ server=function(input,output, session){
 
     xl_name <- paste(getwd(), "/", ime, "_", isolate(input$report), as.character(format(Sys.Date(), "%y")), ".xlsx", sep = "")
 
-    saveXcllRprt(isolate(input$OA), isolate(input$report), rep_df, xl_name)
+    displ_d <- isolate(display_dimensions()) ########################### hop
+
+    saveXcllRprt(isolate(input$OA), isolate(input$report), displ_d, rep_df, xl_name)
 
   })
 
@@ -773,8 +775,8 @@ server=function(input,output, session){
       row.no <- as.numeric(change.in.table[1, ])
       col.no <- as.numeric(change.in.table[2, ])
       if(len.chg ==4) {
-      old.val <- change.in.table[3, ]
-      new.val <- change.in.table[4, ]
+        old.val <- change.in.table[3, ]
+        new.val <- change.in.table[4, ]
       }
       else {
         old.val <- NULL
@@ -811,33 +813,33 @@ server=function(input,output, session){
   col_widths = c(100, 43, 45, 45, 106)
   if (isolate(display_dimensions()) < 620) col_widths[1] <- 56
 
-    hott <- reactive(hot_validate_numeric(
-                      hot_col(
-                        hot_col(
-                          hot_cols(
-                            rhandsontable(za_teden(), stretchH = "all"),
-                          colWidths = col_widths),
-                        col = c(1, 4), halign = "htRight", readOnly = TRUE),
-                      col = 5, halign = "htCenter"),
-                    col = c(2, 3), min = 0, max = 24))
+  hott <- reactive(hot_validate_numeric(
+    hot_col(
+      hot_col(
+        hot_cols(
+          rhandsontable(za_teden(), stretchH = "all"),
+          colWidths = col_widths),
+        col = c(1, 4), halign = "htRight", readOnly = TRUE),
+      col = 5, halign = "htCenter"),
+    col = c(2, 3), min = 0, max = 24))
 
   output$hot <- renderRHandsontable({
     hott()
   })
 
   observe({
-  w_hours <- sum(za_teden()[, 4], na.rm = TRUE)
-  P_hours <- sum(za_teden()[, 5] == "praznik", na.rm = TRUE) * 8
-  D_hours <- sum(za_teden()[, 5] == "dopust", na.rm = TRUE) * 8
-  B_hours <- sum(za_teden()[, 5] == "bolniška", na.rm = TRUE) * 8
+    w_hours <- sum(za_teden()[, 4], na.rm = TRUE)
+    P_hours <- sum(za_teden()[, 5] == "praznik", na.rm = TRUE) * 8
+    D_hours <- sum(za_teden()[, 5] == "dopust", na.rm = TRUE) * 8
+    B_hours <- sum(za_teden()[, 5] == "bolniška", na.rm = TRUE) * 8
 
-  all_hours <- w_hours + P_hours + D_hours + B_hours
+    all_hours <- w_hours + P_hours + D_hours + B_hours
 
-  output$sum_w_hours <- renderText(c("Delo: ", w_hours))
-  output$sum_P_hours <- renderText(c("Praznik: ", P_hours))
-  output$sum_D_hours <- renderText(c("Dopust: ", D_hours))
-  output$sum_B_hours <- renderText(c("Bolnioška odsotnost: ", B_hours))
-  output$sum_all_hours <-  renderText(c("Skupno število ur:", all_hours))
+    output$sum_w_hours <- renderText(c("Delo: ", w_hours))
+    output$sum_P_hours <- renderText(c("Praznik: ", P_hours))
+    output$sum_D_hours <- renderText(c("Dopust: ", D_hours))
+    output$sum_B_hours <- renderText(c("Bolnioška odsotnost: ", B_hours))
+    output$sum_all_hours <-  renderText(c("Skupno število ur:", all_hours))
   })
 
   observeEvent(input$really_save, {
@@ -871,7 +873,7 @@ server=function(input,output, session){
   })
 
   observeEvent(input$copy, {
-               teden_copy <- teden_df()
+    teden_copy <- teden_df()
   })
 
   # To do this you should use reactive values Prestavi dogajanje v reactiveValues
