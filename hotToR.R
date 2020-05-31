@@ -593,7 +593,7 @@ ui = shinyUI(
                                          size = "small")
                           ),
                           column(6, allign = "center",
-                                 actionButton(inputId="do_report",label="Pripravi listo prisotnosti", width = "100%"),
+                                 actionButton(inputId="do_report",label="Pripravi mesečno listo prisotnosti", width = "100%"),
                                  bsModal("prisotnost", "Lista prisotnosti", "do_report",
                                          h4(textOutput("title_report")),
                                          selectInput(inputId="report",label="za mesec:",
@@ -614,9 +614,21 @@ ui = shinyUI(
                  textOutput("sum_P_hours"),
                  textOutput("sum_D_hours"),
                  textOutput("sum_B_hours")),
-               br(),
                h3(
                  textOutput("sum_all_hours")
+               ),
+               br(),
+               fluidRow(
+                 column(4, offset = 8,
+                        actionButton(inputId="settings", "", icon = icon("user-cog"))
+                        # bsModal("prisotnost", "Lista prisotnosti", "do_report",
+                        #         h4(textOutput("title_report")),
+                        #         selectInput(inputId="report",label="za mesec:",
+                        #                     choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
+                        #                     selected = format(Sys.Date(), "%B")),
+                        #         actionButton(inputId="really_do_report", label="Pripravi"),
+                        #         size = "small")
+                 )
                )
         )
     )
@@ -719,7 +731,7 @@ server=function(input,output, session){
 
     xl_name <- paste(getwd(), "/", ime, "_", isolate(input$report), as.character(format(Sys.Date(), "%y")), ".xlsx", sep = "")
 
-    displ_d <- isolate(display_dimensions()) ########################### hop
+    displ_d <- isolate(display_dimensions()) ########################### hop ########################
 
     saveXcllRprt(isolate(input$OA), isolate(input$report), displ_d, rep_df, xl_name)
 
