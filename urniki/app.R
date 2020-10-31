@@ -13,7 +13,67 @@ library(openxlsx)
 library(RSQLite)
 library(tidyxl)
 
-# Define UI for application that draws a histogram
+# Database manipulation
+
+createTable <- function(db, df, table_name, key) {
+    n <- length(df)
+    columns <- paste(sapply(1:n, function(x) paste(names(df[x]), typeof(df[[x]]))), collapse = ", ")
+    substitutions <- matrix(c("integer", "TEXT", "double", "INTEGER", "character", "TEXT"), 2, 3)
+    columns <- gsubAll(columns, substitutions, " ")
+
+    # prepare the create table
+    query <- sprintf(
+        "CREATE TABLE %s (%s, UNIQUE (%s)) ",
+        table_name,
+        columns,
+        key)
+
+    # Submit the update query
+    dbExecute(db, query)
+}
+
+replaceData <- function(db, table, df) {
+    query <- sprintf(
+        "REPLACE INTO %s (%s) VALUES ('%s')",
+        table,
+        paste(names(df), collapse = ", "),
+        paste(df, collapse = "', '")
+    )
+    # Submit the update query and disconnect
+    dbExecute(db, query)
+}
+
+readData <- function(db, table, what = "*", crit = "", sel_val = "") {
+    # Prepare the query
+    if (crit != "") crit <- sprintf("WHERE %s = '%s'", crit, sel_val)
+    query <- sprintf("SELECT %s FROM %s %s", what, table, crit)
+    # Submit the query
+    df <- dbGetQuery(db, query)
+    return(df)
+}
+
+workDB <- function(userName, assistName, toDo = NULL, ...) {
+    sql_name <- paste0("./", userName)
+    table <- assistName
+    db <- dbConnect(RSQLite::SQLite(), sql_name)
+    actions <- list(...)
+    i = 1
+    while (i <= length(actions)) {
+        switch(actions[i],
+               read = readData(db, table),
+               replace = {replaceData(db, table, actions[i+1])
+                   i = i + 1},
+               find = {readData(db, table, actions[i+1], actions[i+2])
+                   i = i + 2},
+               newtable = {createTable(db, actions[i+1], table, actions[i+2])
+                   i = i + 2},
+               print(c("neznano: ", actions[i]))
+        )
+        i = i + 1
+    }
+}
+
+# Define UI for application that prepares the schedule for the presonal assistant
 ui <- fluidPage(
 
     # Application title
@@ -82,14 +142,7 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$distPlot <- renderPlot({
-        # generate bins based on input$bins from ui.R
-        x    <- faithful[, 2]
-        bins <- seq(min(x), max(x), length.out = input$bins + 1)
 
-        # draw the histogram with the specified number of bins
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
-    })
 }
 
 # Run the application
