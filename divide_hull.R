@@ -1,6 +1,14 @@
 
 multitude <- 8
 
+find_position <- function(df, cube, di) {
+  #' Returns data frame of points with same number of dimensions as df 
+  #' with the index an orientation (+/-) of the bin in the cube
+  #' at the appropriate pair of dimensions and 0 for other dimensions.
+     
+  res <-vapply(df, function(){}, FUN.VALUE = logical) # Ugotovi, kakšno strukturo hočeš
+}
+
 pntz <- read.csv2("data/tek_onako.csv")
 dimz <- ncol(pntz)
 np <- nrow(pntz)
@@ -24,3 +32,4 @@ if(multitude < 2) {
   prt <- di/multitude
   cube <- t(sapply(0:(2 * multitude), function(x) min_pntz + x * prt))
 }
+
