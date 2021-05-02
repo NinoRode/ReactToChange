@@ -21,6 +21,7 @@ if(multitude < 2) {
   #------------------------  STOP IF TOO FIEW POINTS  ------------------------#
   stop("Number of points is too small.\n use simple quickhull")
   
+  stop("Number of points is too small")
 } else {
   prt <- di/multitude
   cube <- t(sapply(0:(2 * multitude), function(x) min_pntz + x * prt))
