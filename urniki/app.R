@@ -1,10 +1,4 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
 #
 
 library(shiny)
@@ -12,6 +6,7 @@ library(rhandsontable)
 library(openxlsx)
 library(RSQLite)
 library(tidyxl)
+library(excelR)
 
 # Database manipulation
 
@@ -82,40 +77,28 @@ ui <- fluidPage(
     # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
-            sliderInput("bins",
-                        "Number of bins:",
-                        min = 1,
-                        max = 50,
-                        value = 30)
+            selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi")),
+            dateInput("teden", "Pripravi urnik za nov teden:",
+                      value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
+                      format = "dd. M. yyyy",
+                      language = "sl",
+                      weekstart = 1),
+            selectInput("izbor", "Kopiraj teden iz baze:",
+                        choices = as.character(
+                            Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 1,
+                            "%d. %b. %Y")),
+            br(),
+            br(),
+            br(),
+            actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
+            selectInput(inputId="report",label="Za:",
+                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
+                        selected = format(Sys.Date(), "%B")),
+            width = 3
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
-            fluidRow(
-                column(8, offset = 2, allign = "center",
-                       h2(textOutput("title")))),
-            fluidRow(
-                h3(column(6, offset = 4, allign = "center",
-                          selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
-            fluidRow(
-                column(6,
-                       dateInput("teden", "Izberi teden:",
-                                 value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                                 format = "DD, dd. M. yyyy",
-                                 language = "sl",
-                                 weekstart = 1),
-                       selectInput("izbor", "ali Izberi teden iz baze:",
-                                   choices = as.character(
-                                       Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
-                                       "%d. %b. %Y"))
-                ),
-                column(6,
-                       actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
-                       selectInput(inputId="report",label="Za:",
-                                   choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
-                                   selected = format(Sys.Date(), "%B"))
-                )
-            ),
             fluidRow(wellPanel(
                 column(6,
                        rHandsontableOutput("hot"),
@@ -134,7 +117,8 @@ ui <- fluidPage(
                 column(6,
                        actionButton(inputId="enter",label="Shrani urnik")
                 )
-            ))
+            )),
+            width = 9
         )
     )
 )

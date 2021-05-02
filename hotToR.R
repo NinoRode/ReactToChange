@@ -352,7 +352,7 @@ saveXcllRprt<- function(OA, mesec, rep_df, xl_name) {
   )
 
   writeData(rep_wb, sheet = 1,
-            x = "Matjaž Metelko",
+            div_hullx = "Matjaž Metelko",
             startCol = 4,
             startRow = 2,
             colNames = FALSE, rowNames = FALSE
