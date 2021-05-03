@@ -61,5 +61,5 @@ bin_data <- function(pntz, multitude = 2) {
   pntz
 }
 
-bin_data(pntz, multitude = 4)
+table(bin_data(pntz, multitude = 4)$px1)
 
