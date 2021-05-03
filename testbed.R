@@ -2,11 +2,11 @@ di <- 100
 multitude <- 4
 d <- c(12, 13, 10, 9, 4, 25, 8, 26, 51, 7, 11, 32)
 
-point_to_bin <- function(pnt, di, multitude = 2, ){
-  #' Find a plane defined by the two dimensions with smallest value:
-  #' this is the plane which defines the bin the point belongs.
+point_to_bin <- function(pnt, di, multitude = 2){
   
-  are_3_min <- vector("double", 3) # Načeloma je "double" pravi tip.
+  # Find a plane defined by the two dimensions with smallest value:
+  # this is the plane which defines the bin the point belongs.
+  are_3_min <- vector("double", 3)
   which_min <- vector("integer", 3)
   ad <- abs(pnt)
   are_3_min[1] <- min(ad)
@@ -22,4 +22,34 @@ point_to_bin <- function(pnt, di, multitude = 2, ){
   res_d[which_min[1]] <- ceiling((sign(pnt[which_min[1]]) * are_3_min[1] / are_3_min[3]) * multitude)
   res_d[which_min[2]] <- ceiling((sign(pnt[which_min[1]]) * are_3_min[2] / are_3_min[3]) * multitude)
   res_d[which_min[3]] <- sign(pnt[which_min[3]]) * multitude * 2
+  
+  res_d
+}
+
+bin_data <- function(df, multitude = 2) {
+  
+  dimz <- ncol(df)
+  np <- nrow(df)
+  
+  # Move point cloud to origin
+  centr <- colMeans(df)
+  cnt_df <-df - centr 
+  
+  min_df <- mapply(min, cnt_df)
+  di <- max(c(-min_df,  mapply(max, cnt_df)))
+  
+  if(np < multitude * multitude * dimz * 5) {
+    sprintf("Warning: Number of points (%d) is too small for the proposed multitude (%d)", np, multitude)
+    multitude <- 2^floor(log2(sqrt(np / dimz / 5)))
+    sprintf("multitude changed to %d", multitude)
+  }
+  
+  if(multitude < 1) {
+    #------------------------  STOP IF TOO FIEW POINTS  ------------------------#
+    stop("Number of points is too small.\n use simple quickhull")
+  } else {
+    posit <- lapply(1:dimz, point_to_bin(x, di, multitude))
+    df <- cbind(df, posit)
+  }
+  df
 }
