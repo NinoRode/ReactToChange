@@ -6,7 +6,7 @@
 pntz <- read.csv2("data/tek_onako.csv")
 
 
-point_to_bin <- function(pnt, di, multitude = 2){
+point_to_bin <- function(pnt, multitude = 2){
   # Find a plane defined by the two dimensions with smallest value:
   # this is the plane which defines the bin the point belongs.
   are_3_min <- vector("double", 3)
@@ -22,8 +22,10 @@ point_to_bin <- function(pnt, di, multitude = 2){
   # Construct a vector with bin positions of the point (at which_min[1 and 2]) 
   # and the sign of the projection (at which_min[3]) flagged by 2 * multitude.
   res_d <- pnt - pnt
-  res_d[which_min[1]] <- ceiling((sign(pnt[which_min[1]]) * are_3_min[1] / are_3_min[3]) * multitude)
-  res_d[which_min[2]] <- ceiling((sign(pnt[which_min[1]]) * are_3_min[2] / are_3_min[3]) * multitude)
+  # res_d <- rep(0, ncol(pnt))
+  names(res_d) <- paste0("p", names(pnt))
+  res_d[which_min[1]] <- sign(pnt[which_min[1]]) * ceiling(are_3_min[1] / are_3_min[3] * multitude)
+  res_d[which_min[2]] <- sign(pnt[which_min[1]]) * ceiling(are_3_min[2] / are_3_min[3] * multitude)
   res_d[which_min[3]] <- sign(pnt[which_min[3]]) * Inf
   
   res_d
@@ -52,7 +54,7 @@ bin_data <- function(pntz, multitude = 2) {
     stop("Number of points is too small.\n use simple quickhull")
   } else {
     # Compute positions of points in bins
-    p <- (lapply(1:np, function(x) point_to_bin(cnt_pntz[x, ], di, multitude))) 
+    p <- (lapply(1:np, function(x) point_to_bin(unlist(cnt_pntz[x, ]), multitude))) 
     posit <- as.data.frame(do.call(rbind, p))       # Convert list to data frame rows
     pntz <- cbind(pntz, posit)
   }
