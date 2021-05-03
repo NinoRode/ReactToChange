@@ -6,7 +6,7 @@ find_position <- function(df, cube, di) {
   #' with the index an orientation (+/-) of the bin in the cube
   #' at the appropriate pair of dimensions and 0 for other dimensions.
      
-  res <-vapply(df, function(){}, FUN.VALUE = logical) # Ugotovi, kakšno strukturo hočeš
+  res <-vapply(df, function(){}, FUN.VALUE = logical(ncol(df)))
 }
 
 pntz <- read.csv2("data/tek_onako.csv")
