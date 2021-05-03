@@ -7,3 +7,4 @@ two_min[1] <- min(ad)
 which_min[1] <- which(ad == two_min[1])
 two_min[2] <- min(ad[-which_min[1]])
 which_min[2] <- which(ad == two_min[2])
+
