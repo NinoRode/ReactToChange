@@ -61,5 +61,8 @@ bin_data <- function(pntz, multitude = 2) {
   pntz
 }
 
-table(bin_data(pntz, multitude = 4)$px1)
+cub <- bin_data(pntz, multitude = 4)
+
+dimz <- ncol(pntz)
+cube <- split(cub, cub[, (dimz + 1):(2 * dimz)], drop = TRUE)
 
