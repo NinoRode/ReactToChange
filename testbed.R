@@ -74,5 +74,11 @@ microbenchmark(
   norm(x, "2"),
   max(abs(x))*(sum((abs(x)/max(abs(x)))^2))^(1/2),
   times = 5000)
-  
+
+microbenchmark(
+  unlist(apply(cnt_pntz, 2, max)),
+  sapply(cnt_pntz, max),
+  vapply(cnt_pntz, max, double(1)),
+  times = 50000)
+
 
