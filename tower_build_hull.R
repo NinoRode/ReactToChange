@@ -5,7 +5,7 @@ dimz <- ncol(pntz)
 np <- nrow(pntz)
 
 cnt_pntz <- as.data.frame(scale(pntz))
-maxs <- sapply(cnt_pntz, max)
+maxs <- unlist(apply(cnt_pntz, 2, max))
 mins <- sapply(cnt_pntz, min)
 
 faces <- rbind(cnt_pntz[which(sapply(1:nrow(cnt_pntz), function(i) any(maxs %in% cnt_pntz[i, ]))), ],

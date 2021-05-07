@@ -1,3 +1,4 @@
+library(microbenchmark)
 
 # di <- 100
 # multitude <- 4
@@ -65,4 +66,13 @@ cub <- bin_data(pntz, multitude = 4)
 
 dimz <- ncol(pntz)
 cube <- split(cub, cub[, (dimz + 1):(2 * dimz)], drop = TRUE)
+
+x <- unlist(pntz[1, ])
+microbenchmark(
+  sqrt(sum(x*x)),
+  sqrt(sum(x^2)),
+  norm(x, "2"),
+  max(abs(x))*(sum((abs(x)/max(abs(x)))^2))^(1/2),
+  times = 5000)
+  
 
