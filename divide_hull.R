@@ -3,7 +3,7 @@ multitude <- 8
 
 find_position <- function(df, cube, di) {
   #' Returns data frame of points with same number of dimensions as df 
-  #' with the index an orientation (+/-) of the bin in the cube
+  #' with the index and orientation (+/-) of the bin in the cube
   #' at the appropriate pair of dimensions and 0 for other dimensions.
      
   res <-vapply(df, function(){}, FUN.VALUE = logical(ncol(df)))
