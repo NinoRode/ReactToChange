@@ -1,12 +1,16 @@
 library(data.tree)
 library(OjaNP)
 
-is_outside <- function(pntz, facet) {
-  #' Finds points outside the convex hull:
-  #' more distant from the origin than the hyperplane of the facet.
+is_it_outside <- function(pntz, facet, eye = NULL ) {
+  #' Finds points on the other side of the facet:
+  #' more distant from the eye than the hyperplane of the facet.
+  #' Can be used to find points outside the convex hull,
+  #' or help determine visibility of the point.
   
   f <- solve (as.matrix(facet), rep(1, ncol(facet)))
-  origin <- as.matrix(rep(0, length(f)) - facet[1, ]) %*% f
+  if (is.null(eye)) eye <- rep(0, length(f))
+  
+  origin <- as.matrix(eye) - facet[1, ] %*% f
   
   pos <- vapply(1:nrow(pntz), function(x) {round(as.matrix(pntz[x, ] - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
   out <- pntz[pos > 0, ]
