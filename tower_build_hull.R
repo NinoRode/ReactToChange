@@ -10,10 +10,12 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
   f <- solve (as.matrix(facet), rep(1, ncol(facet)))
   if (is.null(eye)) eye <- rep(0, length(f))
   
-  origin <- as.matrix(eye) - facet[1, ] %*% f
+  origin <- as.matrix(eye - facet[1, ]) %*% f
   
   pos <- vapply(1:nrow(pntz), function(x) {round(as.matrix(pntz[x, ] - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
+  proj <- pntz - pos
   out <- pntz[pos > 0, ]
+  
   return(out)
 }
 
@@ -44,13 +46,13 @@ max_min <- vapply(1:dimz, function(i) {
                      }, double(1))
 hll_min <- hll_min[vapply(nrm_min, function (i) {i %in% max_min }, logical(1)), ]
 
-# is_outside(cnt_pntz, hll_max)
+# is_it_outside(cnt_pntz, hll_max)
 for (i in 1:length(hll_max)) {
   print(hll_max[i, ])
   print("----max-----")
-  print(is_outside(rbind(hll_max[-i, ], hll_min), rbind(hll_max[-i, ], hll_min[i, ])))
+  print(is_it_outside(rbind(hll_max[-i, ], hll_min), rbind(hll_max[-i, ], hll_min[i, ])))
   print(hll_min[i, ])
   print("----min-----")
-  print(is_outside(rbind(hll_max, hll_min[-i, ]), rbind(hll_max[i, ], hll_min[-i, ])))
+  print(is_it_outside(rbind(hll_max, hll_min[-i, ]), rbind(hll_max[i, ], hll_min[-i, ])))
   print("++++++++++++")
 }
