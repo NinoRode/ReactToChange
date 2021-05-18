@@ -68,17 +68,17 @@ v dokazovanju uporablja paralelno projekcijo. Bi lahko uporabil projekcijo iz sm
 
 
 ___________________________
-PREPROST REKURZIVEN ALGORITEM (sorodnik quickhull – tower building)
+~~PREPROST~~ REKURZIVEN ALGORITEM (sorodnik quickhull – tower building)
 [verjetno O(n log(n)) za res veliko točk naredi iterativno verzijo]
 [Da se izognemo kombinatorni eksploziji, kot začetek izberemo iz maksimalnih točk simpleks z največjo prostornino]
-izračunaj centroid točk premakni centroid v izhodišče
+~~izračunaj centroid~~ točk premakni centroid v izhodišče
 Najdi točke s skrajnimi koordinatami in jih daj v spisek (vogalov) konveksne lupine
 Najdi simpleks z največjo prostornino (glavni simpleks)
 Iz vsake zunanje ploskve glavnega simpleksa naredi simpleks s centroidom
 Za vsakega od teh simpleksov (d) uporabi build_floor 
 Procedura build_floor {
-najdi točke najbolj oddaljene od centroida (min in max abs razdalja = max abs koordinata po eno skrajno koordinato za vsako koordinatno os) za vsako kombinacijo predznakov <tu je  kombinatorna eksplozija simpleksov 2d > [kaj narediti, če se skrajne vrednosti ponavljajo? => vključiš prvo, ostale bodo prišle v izbor kasneje, saj so vogali lupine, še bolje vključiš najbolj oddaljeno od centroida - izključiš največ točk]
-če točk ni dovolj za poln simpleks: {
+najdi točke najbolj oddaljene od centroida (~~min in~~ max abs razdalja = max abs koordinata ~~po eno skrajno koordinato~~ za vsako koordinatno os) za vsako kombinacijo predznakov (tu je kombinatorna eksplozija simpleksov 2<sup>d</sup>) [kaj narediti, če se skrajne vrednosti ponavljajo? => vključiš prvo, ostale bodo prišle v izbor kasneje, saj so vogali lupine, še bolje **vključiš najbolj oddaljeno od centroida** - izključiš največ točk]
+```če točk ni dovolj za poln simpleks: {
 dodaj vse preostale točke v spisek lupine in nehaj
 } drugače: {
 točke s skrajnimi koordinatami spravi v spisek lupine
@@ -90,8 +90,8 @@ najdi točke, ki so v isto smer, kot hiperploskev simpleksa nasproti centroida
 <izračunaj centroid stranice nasproti prejšnjega centroida [verjetno je to nepotreben korak]>
 build_floor
 }
-iz točk v spisku lupine izračunaj lupino s quickhull gift wrap divide and conquer ali kaj podobnega
-
+```
+iz točk v spisku lupine izračunaj lupino s ~~quickhull,~~ gift wrap, **divide and conquer** ali kaj podobnega
 {-_-}
 Stvar ni tako preprosta: naslednji sloj je lahko veliko višje in vidi sosednje facete.
 
