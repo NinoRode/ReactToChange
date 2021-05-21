@@ -92,6 +92,7 @@ build_floor
 }
 ```
 iz točk v spisku lupine izračunaj lupino s ~~quickhull,~~ gift wrap, **divide and conquer** ali kaj podobnega
+
 {-_-}
 Stvar ni tako preprosta: naslednji sloj je lahko veliko višje in vidi sosednje facete.
 
@@ -100,7 +101,18 @@ Stvar ni tako preprosta: naslednji sloj je lahko veliko višje in vidi sosednje 
 Ko imaš vse špice, jih najprej povežeš z dolinami, da se rešiš konkavnih pobočij,
 potem jih vežeš med sabo po sistemu vidnosti od vrha navzdol.
 
+**Hopla, lisičica**: flipping edges? 
+
+https://tuxedolabs.blogspot.com/2013/03/convex-hulls-revisited.html 
+
+Torej: naredim do konca in obračam rob dokler:
+- ni konveksno, ali
+- zmanjka sosednjih točk (v tem primeru točka _ni_ na lupini)
+
+to bo treba še dodelati.
+
 __________
 
-Vidnost točke
+Vidnost točke:
+
 Točka je vidna, če so vse točke, ki so »vmes,« na eni strani linije pogleda, če je njena projekcija na pravokotno hiperrevanino skrajna (najdi citat). 
