@@ -1,6 +1,20 @@
 library(data.tree)
 library(OjaNP)
 
+is_it_same_side <- function(pntz, facet, eye = NULL ) {
+  if (!is.null(eye)) {
+    pntz <- pntz - eye
+    facet <- facet - eye
+  }
+
+    
+  if (!is.null(eye)) {
+    out <- out + eye
+  }
+  
+  return(out)
+}
+
 is_it_outside <- function(pntz, facet, eye = NULL ) {
   #' Finds points on the other side of the facet:
   #' more distant from the eye than the hyperplane of the facet.
