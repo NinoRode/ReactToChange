@@ -7,14 +7,21 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
   #' Can be used to find points outside the convex hull,
   #' or help determine visibility of the point.
   
-  f <- solve (as.matrix(facet), rep(1, ncol(facet)))
-  if (is.null(eye)) eye <- rep(0, length(f))
+  if (!is.null(eye)) {
+    pntz <- pntz - eye
+    facet <- facet - eye
+  }
   
-  origin <- as.matrix(eye - facet[1, ]) %*% f
+  f <- solve (as.matrix(facet), rep(1, ncol(facet)))
+  
+  # origin <- as.matrix(eye - facet[1, ]) %*% f
   
   pos <- vapply(1:nrow(pntz), function(x) {round(as.matrix(pntz[x, ] - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
-  proj <- pntz - pos
+
   out <- pntz[pos > 0, ]
+  if (!is.null(eye)) {
+    out <- out + eye
+  }
   
   return(out)
 }
@@ -56,3 +63,8 @@ for (i in 1:length(hll_max)) {
   print(is_it_outside(rbind(hll_max, hll_min[-i, ]), rbind(hll_max[i, ], hll_min[-i, ])))
   print("++++++++++++")
 }
+rbind(hll_max[-1, ], hll_min)
+rbind(hll_max[-1, ], hll_min[1, ])
+print(is_it_outside(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ]), c(1, 1, 3, 0)))
+
+
