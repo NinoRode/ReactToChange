@@ -2,7 +2,9 @@ library(data.tree)
 library(OjaNP)
 
 is_it_same_side <- function(pntz, facet, eye = NULL ) {
-  
+  #' Determines if the points are on the same of the (hyperplane of the) facet 
+  #' as the eye   #' (or on the hyperplane of the facet).
+
   if (!is.null(eye)) {
     pntz <- pntz - eye
     facet <- facet - eye
