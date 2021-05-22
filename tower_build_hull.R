@@ -8,7 +8,10 @@ is_it_same_side <- function(pntz, facet, eye = NULL ) {
     facet <- facet - eye
   }
   
-  pntz <- as.matrix(pntz)
+  if(is.vector(pntz)) {
+    pntz <- as.matrix(t(pntz))
+  } else {
+    pntz <- as.matrix(pntz)}
   facet <- as.matrix(facet)
   
   f <- solve (facet, rep(1, ncol(facet)))
@@ -86,5 +89,10 @@ rbind(hll_max[-1, ], hll_min)
 rbind(hll_max[-1, ], hll_min[1, ])
 print(is_it_outside(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ]), c(1, 1, 3, 0)))
 print(is_it_same_side(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ])))
+
+print(is_it_same_side(c(0.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
+print(is_it_same_side(c(1.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
+print(is_it_same_side(c(1,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
+print(is_it_same_side(c(2,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 
 
