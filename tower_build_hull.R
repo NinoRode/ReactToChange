@@ -2,17 +2,21 @@ library(data.tree)
 library(OjaNP)
 
 is_it_same_side <- function(pntz, facet, eye = NULL ) {
+  
   if (!is.null(eye)) {
     pntz <- pntz - eye
     facet <- facet - eye
   }
-
-    
-  if (!is.null(eye)) {
-    out <- out + eye
-  }
   
-  return(out)
+  pntz <- as.matrix(pntz)
+  facet <- as.matrix(facet)
+  
+  f <- solve (facet, rep(1, ncol(facet)))
+  
+  pos <- vapply(1:nrow(pntz), function(x) 
+    {round(t(pntz[x, ] - facet[1, ]) %*% f, 12)}, double(1))
+  
+  return(ifelse(pos <= 0, TRUE, FALSE ))
 }
 
 is_it_outside <- function(pntz, facet, eye = NULL ) {
@@ -68,17 +72,19 @@ max_min <- vapply(1:dimz, function(i) {
 hll_min <- hll_min[vapply(nrm_min, function (i) {i %in% max_min }, logical(1)), ]
 
 # is_it_outside(cnt_pntz, hll_max)
-for (i in 1:length(hll_max)) {
-  print(hll_max[i, ])
-  print("----max-----")
-  print(is_it_outside(rbind(hll_max[-i, ], hll_min), rbind(hll_max[-i, ], hll_min[i, ])))
-  print(hll_min[i, ])
-  print("----min-----")
-  print(is_it_outside(rbind(hll_max, hll_min[-i, ]), rbind(hll_max[i, ], hll_min[-i, ])))
-  print("++++++++++++")
-}
+# for (i in 1:length(hll_max)) {
+#   print(hll_max[i, ])
+#   print("----max-----")
+#   print(is_it_outside(rbind(hll_max[-i, ], hll_min), rbind(hll_max[-i, ], hll_min[i, ])))
+#   print(hll_min[i, ])
+#   print("----min-----")
+#   print(is_it_outside(rbind(hll_max, hll_min[-i, ]), rbind(hll_max[i, ], hll_min[-i, ])))
+#   print("++++++++++++")
+# }
+
 rbind(hll_max[-1, ], hll_min)
 rbind(hll_max[-1, ], hll_min[1, ])
 print(is_it_outside(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ]), c(1, 1, 3, 0)))
+print(is_it_same_side(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ])))
 
 
