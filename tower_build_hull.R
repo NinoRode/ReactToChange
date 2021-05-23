@@ -1,10 +1,10 @@
 library(data.tree)
 library(OjaNP)
 
-is_it_same_side <- function(pntz, facet, eye = NULL ) {
-  #' Determines if the points are on the same of the (hyperplane of the) facet 
-  #' as the eye   #' (or on the hyperplane of the facet).
-
+is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
+  #' Determines if the points are on the same/other side of 
+  #' the (hyperplane of the) facet #' as the eye (or on the hyperplane).
+  
   if (!is.null(eye)) {
     pntz <- pntz - eye
     facet <- facet - eye
@@ -19,9 +19,13 @@ is_it_same_side <- function(pntz, facet, eye = NULL ) {
   f <- solve (facet, rep(1, ncol(facet)))
   
   pos <- vapply(1:nrow(pntz), function(x) 
-    {round(t(pntz[x, ] - facet[1, ]) %*% f, 12)}, double(1))
+  {round(t(pntz[x, ] - facet[1, ]) %*% f, 12)}, double(1))
   
-  return(ifelse(pos <= 0, TRUE, FALSE ))
+  if(other) {
+    return(ifelse(pos <= 0, FALSE, TRUE ))
+  } else {
+    return(ifelse(pos <= 0, TRUE, FALSE ))
+  }
 }
 
 is_it_outside <- function(pntz, facet, eye = NULL ) {
@@ -50,7 +54,7 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
 }
 
 find_sky_line <- function(pntz, to_origin = TRUE) {
-#' Finds the sky line of the data
+  #' Finds the sky line of the data -- write correct test for dominance
   
   dimz <- ncol(pntz)
   np <- nrow(pntz)
@@ -63,7 +67,71 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
   }
   
   colMin <- apply(pntz, 2, min)
+  
+  if(to_origin) {
+    pntz <- sweep(pntz, 2, colMin)
+  }
+  skyline <- data.frame(matrix(ncol = dimz, nrow = 0))
+  colnames(skyline) <- paste0("x", 1:dimz)
+  
+  repeat {
+    maxs <- apply(pntz, 2, max) # find max for each dimension
+    skln <- pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% pntz[i, ])}, logical(1))), ]
+    
+    skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
+    max_max <- vapply(1:dimz, function(i) {
+      max(skln_nrm[which(skln[, i] == max(skln[, i]))])
+    }, double(1))
+    skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
+    
+    skyline <- rbind(skyline, skln)
+    is_over <- function(p) {any(all(apply(skln, 1, `>`, p)))}
+    are_over <- apply(pntz, 1, is_over) ##################
+    pntz_over <- pntz[are_over, ]
+    np <- nrow(pntz_over)
+    if (is.null(np)) {
+      skyline <- rbind(skyline, pntz_over)
+      skyline <- sweep(skyline, 2, colMin, FUN = "+")
+ 
+      return(skyline)
+      
+    }
+    if (np <= dimz) {
+      pnt_nrm <- apply(pntz_over, 1, vec_norm)
+      top_pnt <- pntz_over[which(pnt_nrm == max(pnt_nrm)), ]
+      skyline <- rbind(skyline, top_pnt)
+      for (i in 1:dimz) {
+        tmp <- !is_it_same_side(pntz_over, rbind(skln[-i, ], top_pnt)) 
+        if (sum(tmp) > 0) skyline <- rbind(skyline, tmp)
+      }
+      skyline <- sweep(skyline, 2, colMin, FUN = "+")
+      
+      return(skyline)
+      
+    } else {
+      pntz <- pntz_over
+    }
+  }
+  
+  skyline <- sweep(skyline, 2, colMin, FUN = "+")
+  return(skyline)
+}
 
+find_hull <- function(pntz, to_origin = TRUE) {
+  #' Finds the upper convex hull of the data
+  
+  dimz <- ncol(pntz)
+  np <- nrow(pntz)
+  vec_norm <- function(i) sqrt(sum(i^2))
+  
+  if(is.vector(pntz)) {
+    pntz <- as.matrix(t(pntz))
+  } else {
+    pntz <- as.matrix(pntz)
+  }
+  
+  colMin <- apply(pntz, 2, min)
+  
   if(to_origin) {
     pntz <- sweep(pntz, 2, colMin)
   }
@@ -99,7 +167,7 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
         if (sum(tmp) > 0) skyline <- rbind(skyline, tmp)
       }
       skyline <- sweep(skyline, 2, colMin, FUN = "+")
-
+      
       return(skyline)
       
     } else {
