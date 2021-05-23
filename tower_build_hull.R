@@ -28,6 +28,14 @@ is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
   }
 }
 
+not_dominated <- function(pntz, skln) {
+is_over <- function(p) {
+  tmp <- apply(skln, 1, `<`, p)
+  all(apply(tmp, 1, any))
+}
+return(apply(pntz, 1, is_over))
+}
+
 is_it_outside <- function(pntz, facet, eye = NULL ) {
   #' Finds points on the other side of the facet:
   #' more distant from the eye than the hyperplane of the facet.
@@ -85,23 +93,22 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
     skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
     
     skyline <- rbind(skyline, skln)
-    is_over <- function(p) {any(all(apply(skln, 1, `>`, p)))}
-    are_over <- apply(pntz, 1, is_over) ##################
-    pntz_over <- pntz[are_over, ]
+    
+    pntz_over <- pntz[not_dominated(pntz, skln), ]
     np <- nrow(pntz_over)
     if (is.null(np)) {
       skyline <- rbind(skyline, pntz_over)
       skyline <- sweep(skyline, 2, colMin, FUN = "+")
  
       return(skyline)
-      
     }
+
     if (np <= dimz) {
       pnt_nrm <- apply(pntz_over, 1, vec_norm)
       top_pnt <- pntz_over[which(pnt_nrm == max(pnt_nrm)), ]
       skyline <- rbind(skyline, top_pnt)
       for (i in 1:dimz) {
-        tmp <- !is_it_same_side(pntz_over, rbind(skln[-i, ], top_pnt)) 
+        tmp <- not_dominated(pntz_over, rbind(skln[-i, ], top_pnt)) 
         if (sum(tmp) > 0) skyline <- rbind(skyline, tmp)
       }
       skyline <- sweep(skyline, 2, colMin, FUN = "+")
