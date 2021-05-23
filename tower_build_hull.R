@@ -62,7 +62,7 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
 }
 
 find_sky_line <- function(pntz, to_origin = TRUE) {
-  #' Finds the sky line of the data -- write correct test for dominance
+  #' Finds the sky line of the data
   
   dimz <- ncol(pntz)
   np <- nrow(pntz)
@@ -189,9 +189,14 @@ find_hull <- function(pntz, to_origin = TRUE) {
 test2 <- matrix(c(2, 7, 3, 9, 4, 3, 5, 8, 6, 4, 6, 7, 6, 7.5, 7, 5, 7, 7, 8, 6, 9, 2), ncol = 2, byrow = TRUE)
 
 p <- read.csv2("data/tek_onako.csv")
-pntz <- p[, 1:4]
+pntz <- unique(p[, 1:4])
 dimz <- ncol(pntz)
 np <- nrow(pntz)
+
+find_sky_line(test2)
+find_hull(test2)
+find_sky_line(pntz)
+find_hull(pntz)
 
 cnt_pntz <- as.data.frame(scale(pntz))
 pntz_nrm <- vapply(1:np, function(i) sqrt(sum(cnt_pntz[i, ]^2)), double(1)) # fast and dirty norms
@@ -215,17 +220,6 @@ max_min <- vapply(1:dimz, function(i) {
                      }, double(1))
 hll_min <- hll_min[vapply(nrm_min, function (i) {i %in% max_min }, logical(1)), ]
 
-# is_it_outside(cnt_pntz, hll_max)
-# for (i in 1:length(hll_max)) {
-#   print(hll_max[i, ])
-#   print("----max-----")
-#   print(is_it_outside(rbind(hll_max[-i, ], hll_min), rbind(hll_max[-i, ], hll_min[i, ])))
-#   print(hll_min[i, ])
-#   print("----min-----")
-#   print(is_it_outside(rbind(hll_max, hll_min[-i, ]), rbind(hll_max[i, ], hll_min[-i, ])))
-#   print("++++++++++++")
-# }
-
 rbind(hll_max[-1, ], hll_min)
 rbind(hll_max[-1, ], hll_min[1, ])
 print(is_it_outside(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ]), c(1, 1, 3, 0)))
@@ -236,4 +230,3 @@ print(is_it_same_side(c(1.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(1,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(2,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
  
-find_sky_line(test2)
