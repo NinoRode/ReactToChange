@@ -67,6 +67,47 @@ cub <- bin_data(pntz, multitude = 4)
 dimz <- ncol(pntz)
 cube <- split(cub, cub[, (dimz + 1):(2 * dimz)], drop = TRUE)
 
+householder_vec <- function(vect) {
+  #' Computes Householder vector v with v[1] = 1 and beta in R such that
+  #' P = I - beta * t(v) * v is orthogonal and P %*% vect = ||vect|| %*% e1
+  #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236 
+  
+  m <- length(vect)
+  sigma <- t(vect[2:m]) %*% vect[2:m]
+  hous <- c(1, vect[2:m])
+  
+  if (sigma == 0 && vect[1] >= 0) {
+    beta <- 0
+  } else {
+    if (sigma == 0 && vect[1] < 0) {
+      beta <- -2
+    } else {
+      mu <- sqrt(vect[1] * vect[1] + sigma)
+      if (vect[1] <= 0) {
+        hous[1] <- vect[1] - mu
+      } else {
+        hous[1] <- -sigma / (vect[1] + mu)
+      }
+      beta <-  2 * hous[1] * hous[1] / (sigma + hous[1] * hous[1])
+      hous <- hous / hous[1]
+    }
+  }
+  
+  return(list(hous, beta))
+}
+
+householder_premult <- function(A, hous_vect) {
+  #' Premultiply matrix A with Householder matrix
+  #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236 
+  return(A - (hous_vect$beta * hous_vect$hous) %*% (t( hous_vect$hous) %*% A))
+}
+
+householder_postmult <- function(A, hous) {
+  #' Postmultiply matrix A with Householder matrix
+  #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236 
+  return(A -  (A %*% hous_vect$hous) %*% t(hous_vect$beta * hous_vect$hous))
+}
+
 x <- unlist(pntz[1, ])
 microbenchmark(
   sqrt(sum(x*x)),
