@@ -93,20 +93,28 @@ householder_vec <- function(vect) {
     }
   }
   
-  return(list(hous, beta))
+  return(list(hous = hous, beta = as.vector(beta)))
 }
 
 householder_premult <- function(A, hous_vect) {
   #' Premultiply matrix A with Householder matrix
   #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236 
-  return(A - (hous_vect$beta * hous_vect$hous) %*% (t( hous_vect$hous) %*% A))
+  return(A - t((hous_vect$beta * hous_vect$hous) %*% (hous_vect$hous %*% t(A))))
 }
 
 householder_postmult <- function(A, hous) {
   #' Postmultiply matrix A with Householder matrix
   #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236 
-  return(A -  (A %*% hous_vect$hous) %*% t(hous_vect$beta * hous_vect$hous))
+  return(A -  (A %*% hous_vect$hous) %*% (hous_vect$beta * hous_vect$hous))
 }
+
+test2 <- matrix(c(2, 7, 3, 9, 4, 3, 5, 8, 6, 4, 6, 7, 6, 7.5, 7, 5, 7, 7, 8, 6, 9, 2), ncol = 2, byrow = TRUE)
+
+plot(test2, ylim = c(0,10), xlim = c(0,10))
+hous <- householder_vec(c(9, 2))
+tst <- householder_premult(test2, hous)
+tst[ , 2] <- -tst[ , 2]
+points(tst, pch = 8)
 
 x <- unlist(pntz[1, ])
 microbenchmark(
