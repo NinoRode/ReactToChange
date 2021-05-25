@@ -104,8 +104,23 @@ householder_premult <- function(A, hous_vect) {
 
 householder_postmult <- function(A, hous) {
   #' Postmultiply matrix A with Householder matrix
-  #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236 
-  return(A -  (A %*% hous_vect$hous) %*% (hous_vect$beta * hous_vect$hous))
+  #' From Golub VanLoan 2013 Matrix Computations 4. ed., p: 236
+  
+  return(A - (A %*% hous_vect$hous) %*% (hous_vect$beta * hous_vect$hous)) # PREVERI, ČE JE PRAV ####################
+}
+
+rotate_to_plus <- function(pntz) {
+  #' Rotate points to 1. quadrant by multiplying with
+  #' the signs of the dimension of the centroid.
+  #' Because of "overflow" of the point to other quadrants
+  #' simple absolute value is out of question.
+  
+  to_sign <- sign(colMeans(pntz))
+  to_sign[to_sign == 0] <- 1
+  
+  pntz <- apply(pntz, 1, `*`, to_sign)
+  
+  return(pntz)
 }
 
 test2 <- matrix(c(2, 7, 3, 9, 4, 3, 5, 8, 6, 4, 6, 7, 6, 7.5, 7, 5, 7, 7, 8, 6, 9, 2), ncol = 2, byrow = TRUE)
@@ -130,4 +145,6 @@ microbenchmark(
   vapply(cnt_pntz, max, double(1)),
   times = 50000)
 
-
+microbenchmark::microbenchmark({a <- sign(pntz)},
+                               {a <- abs(pntz)},
+                               times = 10000)
