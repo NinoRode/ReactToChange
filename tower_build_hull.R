@@ -188,6 +188,11 @@ find_hull <- function(pntz, to_origin = TRUE) {
   return(skyline)
 }
 
+wrap_gift <- function(pntz) {
+  
+  
+}
+
 test2 <- matrix(c(2, 7, 3, 9, 4, 3, 5, 8, 6, 4, 6, 7, 6, 7.5, 7, 5, 7, 7, 8, 6, 9, 2), ncol = 2, byrow = TRUE)
 
 p <- read.csv2("data/tek_onako.csv")
@@ -231,4 +236,5 @@ print(is_it_same_side(c(0.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(1.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(1,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(2,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
+
  
