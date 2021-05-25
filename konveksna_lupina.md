@@ -116,3 +116,9 @@ __________
 Vidnost točke:
 
 Točka je vidna, če so vse točke, ki so »vmes,« na eni strani linije pogleda, če je njena projekcija na pravokotno hiperrevanino skrajna (najdi citat). 
+
+___________
+
+Dominiranost točke:
+
+Točka je dominirana/podrejena drugi (dominantni) točki, če so vse njene koordinate manjše ali enake pripadnim koordinatam dominantne točke.

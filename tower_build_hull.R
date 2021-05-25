@@ -51,7 +51,9 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
   
   # origin <- as.matrix(eye - facet[1, ]) %*% f
   
-  pos <- vapply(1:nrow(pntz), function(x) {round(as.matrix(pntz[x, ] - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
+  pos <- vapply(1:nrow(pntz), function(x) {
+                                round(as.matrix(pntz[x, ] 
+                                - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
 
   out <- pntz[pos > 0, ]
   if (!is.null(eye)) {
@@ -98,8 +100,8 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
     np <- nrow(pntz_over)
     if (is.null(np)) {
       skyline <- rbind(skyline, pntz_over)
+      
       skyline <- sweep(skyline, 2, colMin, FUN = "+")
- 
       return(skyline)
     }
 
