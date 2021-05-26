@@ -211,6 +211,7 @@ pntz_nrm <- vapply(1:np, function(i) sqrt(sum(cnt_pntz[i, ]^2)), double(1)) # fa
 maxs <- vapply(cnt_pntz, max, double(1)) # find max for each dimension
 mins <- vapply(cnt_pntz, min, double(1)) # find min for each dimension
 
+#.........................................#
 # find the points with max/min value
 hll_max <- cnt_pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% cnt_pntz[i, ])}, logical(1))), ]
 nrm_max <- pntz_nrm[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% cnt_pntz[i, ])}, logical(1)))]
@@ -226,11 +227,20 @@ max_min <- vapply(1:dimz, function(i) {
                           max(nrm_min[which(hll_min[, i] == min(hll_min[, i]))])
                      }, double(1))
 hll_min <- hll_min[vapply(nrm_min, function (i) {i %in% max_min }, logical(1)), ]
+#.........................................#
 
-rbind(hll_max[-1, ], hll_min)
-rbind(hll_max[-1, ], hll_min[1, ])
-print(is_it_outside(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ]), c(1, 1, 3, 0)))
-print(is_it_same_side(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ])))
+# Initial hull 
+init <- lapply(1:dimz, function (i)  rbind(hll_max[-i, ], hll_min[i, ]))
+
+#' TODO uporabi to_positive za vsako faceto v init:
+#' izberi njene točke in delaj dalje na njih.
+#' 
+#' izdelaj n-dimenzionalni gift wrap
+
+# rbind(hll_max[-1, ], hll_min)
+# rbind(hll_max[-1, ], hll_min[1, ])
+# print(is_it_outside(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ]), c(1, 1, 3, 0)))
+# print(is_it_same_side(rbind(hll_max[-1, ], hll_min), rbind(hll_max[-1, ], hll_min[1, ])))
 
 print(is_it_same_side(c(0.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(1.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
