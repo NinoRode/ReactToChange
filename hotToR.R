@@ -545,13 +545,13 @@ default_df <- data.frame(dat = as.character(Sys.Date() - as.numeric(format(Sys.D
 
 ui = shinyUI(fluidPage(
   fluidRow(
-    column(8, offset = 2, allign = "center",
+    column(8, allign = "center",
            h2(textOutput("title")))),
   fluidRow(
-    h3(column(6, offset = 4, allign = "center",
+    h3(column(6, offset = 2, allign = "center",
            selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
   fluidRow(
-    column(6,
+    column(4,
            dateInput("teden", "Izberi teden:",
                      value = Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
                      format = "DD, dd. M. yyyy",
@@ -562,7 +562,7 @@ ui = shinyUI(fluidPage(
                          Sys.Date() - as.numeric(format(Sys.Date(), "%u")) + 8,
                          "%d. %b. %Y"))
     ),
-    column(6,
+    column(4,
            actionButton(inputId="do_report",label="Pripravi listo prisotnosti"),
            selectInput(inputId="report",label="Za:",
                        choices = as.list(format(ISOdate(2020, 1:12, 1), "%B")),
@@ -570,18 +570,18 @@ ui = shinyUI(fluidPage(
     )
   ),
   fluidRow(wellPanel(
-    column(6,
+    column(8,
            rHandsontableOutput("hot"),
            textOutput("sum_w_hours"),
            textOutput("sum_P_hours"),
            textOutput("sum_D_hours"),
            textOutput("sum_B_hours"),
-           textOutput("sum_all_hours")
-    ),
-
-    column(6,
-           tableOutput("tabela"),
-    ))),
+           textOutput("sum_all_hours"))
+    # ,
+    #
+    # column(6,
+    #        tableOutput("tabela"),
+    )),
 
   fluidRow(wellPanel(
     column(6,
