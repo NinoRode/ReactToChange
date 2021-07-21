@@ -707,7 +707,7 @@ server=function(input,output, session){
     build_teden(flat_df())
   })
 
-  output$tabela <- renderTable(teden_df())
+  # output$tabela <- renderTable(teden_df())
 
   observeEvent(list(input$OA, input$teden),
                OA_change(TRUE))
