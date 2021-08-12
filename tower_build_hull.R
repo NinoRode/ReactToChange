@@ -3,18 +3,28 @@ library(OjaNP)
 
 is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
   #' Determines if the points are on the same/other side of 
-  #' the (hyperplane of the) facet #' as the eye (or on the hyperplane).
+  #' the (hyperplane of the) facet 
+  #' as the eye (or on the hyperplane).
+  #' @param pntz: points to be tested
+  #' @param eye: observers eye, origin of the view
+  #' @param facet: data frame or matrix of points determining a hyperplane of the facet
+  #' @param other: boolean determines if the same or other side is true
   
   if (!is.null(eye)) {
     pntz <- pntz - eye
     facet <- facet - eye
   }
   
-  if(is.vector(pntz)) {
-    pntz <- as.matrix(t(pntz))
-  } else {
-    pntz <- as.matrix(pntz)}
-  facet <- as.matrix(facet)
+  if (!is.matrix(pntz)) {
+    if(is.vector(pntz)) {
+      pntz <- as.matrix(t(pntz))
+    } else {
+      pntz <- as.matrix(pntz)}
+  }
+  
+  if (!is.matrix(facet)) {
+    facet <- as.matrix(facet)
+  }
   
   f <- solve (facet, rep(1, ncol(facet)))
   
