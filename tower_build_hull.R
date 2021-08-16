@@ -78,7 +78,7 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
   
   dimz <- ncol(pntz)
   np <- nrow(pntz)
-  vec_norm <- function(i) sqrt(sum(i^2))
+  vec_norm <- function(i) sqrt(sum(i^2)) # drop(i %*% i) but faster
   
   if(is.vector(pntz)) {
     pntz <- as.matrix(t(pntz))
@@ -95,6 +95,8 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
   colnames(skyline) <- paste0("x", 1:dimz)
   
   repeat {
+    
+    ##################### V FUNKCIJO: Find_all_max od tod ###################### 
     maxs <- apply(pntz, 2, max) # find max for each dimension
     skln <- pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% pntz[i, ])}, logical(1))), ]
     
@@ -103,8 +105,10 @@ find_sky_line <- function(pntz, to_origin = TRUE) {
       max(skln_nrm[which(skln[, i] == max(skln[, i]))])
     }, double(1))
     skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
+    ##################### do tod V FUNKCIJO: Find_all_max ###################### 
+    # skln <- Find_all_max(pntz, np, dimz)
     
-    skyline <- rbind(skyline, skln)
+    skyline <- rbind(skyline, skln) # put in skyline
     
     pntz_over <- pntz[not_dominated(pntz, skln), ]
     np <- nrow(pntz_over)
