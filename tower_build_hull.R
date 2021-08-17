@@ -39,11 +39,11 @@ is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
 }
 
 not_dominated <- function(pntz, skln) {
-is_over <- function(p) {
-  tmp <- apply(skln, 1, `<`, p)
-  all(apply(tmp, 1, any))
-}
-return(apply(pntz, 1, is_over))
+  is_over <- function(p) {
+    tmp <- apply(skln, 1, `<`, p)
+    all(apply(tmp, 1, any))
+  }
+  return(apply(pntz, 1, is_over))
 }
 
 is_it_outside <- function(pntz, facet, eye = NULL ) {
@@ -62,9 +62,9 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
   # origin <- as.matrix(eye - facet[1, ]) %*% f
   
   pos <- vapply(1:nrow(pntz), function(x) {
-                                round(as.matrix(pntz[x, ] 
-                                - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
-
+    round(as.matrix(pntz[x, ] 
+                    - facet[1, ]) %*% as.matrix(f), 12)}, double(1))
+  
   out <- pntz[pos > 0, ]
   if (!is.null(eye)) {
     out <- out + eye
@@ -73,70 +73,109 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
   return(out)
 }
 
-find_sky_line <- function(pntz, to_origin = TRUE) {
-  #' Finds the sky line of the data
+find_level_max <- function(pntz, mask = NULL) {
+  dimz <- ncol(pntz)
+  if(is.null(mask)) mask <- rep(1, dimz)
+  
+  cmpr <- 1 : dimz * mask
+  cmpr <- cmpr[cmpr != 0]
+
+  maxs <- apply(pntz, 2, max) # find max for each dimension
+  has_max <- t(vapply(cmpr, function(i) {(maxs[cmpr] %in% pntz[i, cmpr])}, numeric(dimz)))
+  max_pos <- which(has_max == 1, arr.ind = TRUE)
+  mask <- has_max[max_pos[which(duplicated(max_pos[ , "row"])), "row"], ] #Pozor, kaj če jih je več?!!
+  if(any(rowSums(has_max) > 1)) {
+    tmp <- pntz[has_max > 1, ]
+    pntz[has_max > 1, ] <- 0 # Še dodeluj.KJE PRIDE ifelse?
+    return(tmp, find_level_max(tmp_pntz, mask))
+  } else {
+    return(tmp_pntz[has_max > 1, ])
+  }
+}
+
+find_all_max <- function(pntz) {
+    
+  if(!is.matrix(pntz)) {
+    if(is.vector(pntz)) {
+      pntz <- as.matrix(t(pntz))
+    } else {
+      pntz <- as.matrix(pntz)
+    }
+  }
   
   dimz <- ncol(pntz)
   np <- nrow(pntz)
+  tmp_pntz <- pntz
+  mask <- rep(1, dimz)
+  repeat {
+    maxs <- apply(tmp_pntz, 2, max) # find max for each dimension
+    has_max <- t(vapply(1:np, function(i) {sum(maxs[1:dimz] %in% tmp_pntz[i, ])}, numeric(1)))
+    if (all(has_max < 2)) break
+    else{
+      tmp_pntz[has_max > 1, ] <- 0 # To moraš še rešiti
+    }
+  }
+  
+  skln <- pntz[which(has_max == 1), ]
+
+  skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
+  max_max <- vapply(1:dimz, function(i) {
+    max(skln_nrm[which(skln[, i] == max(skln[, i]))])
+  }, double(1))
+  skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
+}
+
+find_sky_line <- function(pntz, to_origin = FALSE) {
+  #' Finds the sky line of the data
+  
+  if(!is.matrix(pntz)) {
+    if(is.vector(pntz)) {
+      pntz <- as.matrix(t(pntz))
+    } else {
+      pntz <- as.matrix(pntz)
+    }
+  }
+  
+  dimz <- ncol(pntz)
+  np <- nrow(pntz)
+  
   vec_norm <- function(i) sqrt(sum(i^2)) # drop(i %*% i) but faster
   
-  if(is.vector(pntz)) {
-    pntz <- as.matrix(t(pntz))
-  } else {
-    pntz <- as.matrix(pntz)
-  }
-  
-  colMin <- apply(pntz, 2, min)
-  
   if(to_origin) {
+    colMin <- apply(pntz, 2, min)
     pntz <- sweep(pntz, 2, colMin)
   }
+  
   skyline <- data.frame(matrix(ncol = dimz, nrow = 0))
   colnames(skyline) <- paste0("x", 1:dimz)
   
   repeat {
     
-    ##################### V FUNKCIJO: Find_all_max od tod ###################### 
-    maxs <- apply(pntz, 2, max) # find max for each dimension
-    skln <- pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% pntz[i, ])}, logical(1))), ]
-    
-    skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
-    max_max <- vapply(1:dimz, function(i) {
-      max(skln_nrm[which(skln[, i] == max(skln[, i]))])
-    }, double(1))
-    skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
-    ##################### do tod V FUNKCIJO: Find_all_max ###################### 
-    # skln <- Find_all_max(pntz, np, dimz)
+    # ##################### V FUNKCIJO: Find_all_max od tod ###################### 
+    # maxs <- apply(pntz, 2, max) # find max for each dimension
+    # skln <- pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% pntz[i, ])}, logical(1))), ]
+    # 
+    # skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
+    # max_max <- vapply(1:dimz, function(i) {
+    #   max(skln_nrm[which(skln[, i] == max(skln[, i]))])
+    # }, double(1))
+    # skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
+    # ##################### do tod V FUNKCIJO: Find_all_max ###################### 
+    skln <- find_all_max(pntz)
     
     skyline <- rbind(skyline, skln) # put in skyline
     
-    pntz_over <- pntz[not_dominated(pntz, skln), ]
+    pntz_over <- pntz[is_it_same_side(pntz, skln, other = TRUE), ]
     np <- nrow(pntz_over)
-    if (is.null(np)) {
+    
+    if (np < dimz) {
       skyline <- rbind(skyline, pntz_over)
-      
-      skyline <- sweep(skyline, 2, colMin, FUN = "+")
-      return(skyline)
+      break
     }
-
-    if (np <= dimz) {
-      pnt_nrm <- apply(pntz_over, 1, vec_norm)
-      top_pnt <- pntz_over[which(pnt_nrm == max(pnt_nrm)), ]
-      skyline <- rbind(skyline, top_pnt)
-      for (i in 1:dimz) {
-        tmp <- not_dominated(pntz_over, rbind(skln[-i, ], top_pnt)) 
-        if (sum(tmp) > 0) skyline <- rbind(skyline, tmp)
-      }
-      skyline <- sweep(skyline, 2, colMin, FUN = "+")
-      
-      return(skyline)
-      
-    } else {
-      pntz <- pntz_over
-    }
+    
+    pntz <- pntz_over
   }
   
-  skyline <- sweep(skyline, 2, colMin, FUN = "+")
   return(skyline)
 }
 
@@ -281,7 +320,9 @@ find_hull(test2)
 
 pntz <- scale(pntz, scale = FALSE)
 
-pntz <- pntz[apply(pntz, 1, all())]
+all_pos <- function(x) {all(x > 0)}
+
+pntz <- pntz[apply(pntz, 1, all_pos), ]
 
 find_sky_line((pntz))
 find_hull(pntz)
@@ -300,13 +341,13 @@ hll_min <- cnt_pntz[which(vapply(1:np, function(i) {any(mins[1:dimz] %in% cnt_pn
 nrm_min <- pntz_nrm[which(vapply(1:np, function(i) {any(mins[1:dimz] %in% cnt_pntz[i, ])}, logical(1)))]
 
 max_max <- vapply(1:dimz, function(i) {
-                          max(nrm_max[which(hll_max[, i] == max(hll_max[, i]))])
-                     }, double(1))
+  max(nrm_max[which(hll_max[, i] == max(hll_max[, i]))])
+}, double(1))
 hll_max <- hll_max[vapply(nrm_max, function (i) {i %in% max_max }, logical(1)), ]
 
 max_min <- vapply(1:dimz, function(i) {
-                          max(nrm_min[which(hll_min[, i] == min(hll_min[, i]))])
-                     }, double(1))
+  max(nrm_min[which(hll_min[, i] == min(hll_min[, i]))])
+}, double(1))
 hll_min <- hll_min[vapply(nrm_min, function (i) {i %in% max_min }, logical(1)), ]
 #.........................................#
 
@@ -328,4 +369,4 @@ print(is_it_same_side(c(1.5,1), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(1,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 print(is_it_same_side(c(2,2), matrix(c(1, 0, 1, 1), nrow = 2, byrow = TRUE)))
 
- 
+
