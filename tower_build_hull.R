@@ -81,15 +81,16 @@ find_level_max <- function(pntz, mask = NULL) {
   cmpr <- cmpr[cmpr != 0]
 
   maxs <- apply(pntz, 2, max) # find max for each dimension
-  has_max <- t(vapply(cmpr, function(i) {(maxs[cmpr] %in% pntz[i, cmpr])}, numeric(dimz)))
+  has_max <- t(vapply(cmpr, function(i) {(maxs[cmpr] %in% pntz[i, cmpr])}, numeric(length(cmpr))))
   max_pos <- which(has_max == 1, arr.ind = TRUE)
   mask <- has_max[max_pos[which(duplicated(max_pos[ , "row"])), "row"], ] #Pozor, kaj če jih je več?!!
-  if(any(rowSums(has_max) > 1)) {
-    tmp <- pntz[has_max > 1, ]
-    pntz[has_max > 1, ] <- 0 # Še dodeluj.KJE PRIDE ifelse?
-    return(tmp, find_level_max(tmp_pntz, mask))
+  num_max <- rowSums(has_max)
+  if(any(num_max > 1)) {
+    tmp <- pntz[num_max > 1, ]
+    pntz[num_max > 1, ] <- 0
+    return(rbind(tmp, find_level_max(pntz, mask)))
   } else {
-    return(tmp_pntz[has_max > 1, ])
+    return(pntz[num_max == 1, ])
   }
 }
 
