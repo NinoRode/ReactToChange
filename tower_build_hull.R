@@ -73,22 +73,37 @@ is_it_outside <- function(pntz, facet, eye = NULL ) {
   return(out)
 }
 
+vec_norm <- function(i) sqrt(sum(i^2)) # vector norm: as sqrt(drop(i %*% i)), but faster
+
+decide <- function(skln) {
+  nrm <- apply(skln, 1, vec_norm)
+  delt <- which(nrm == min(nrm))
+  skln <- skln[-delt, ]
+  skln
+}
+
 find_level_max <- function(pntz, mask = NULL) {
+  
   dimz <- ncol(pntz)
+  np <- nrow(pntz)
+  
   if(is.null(mask)) mask <- rep(1, dimz)
   
   cmpr <- 1 : dimz * mask
   cmpr <- cmpr[cmpr != 0]
-
+  nc <- length(cmpr)
+  
   maxs <- apply(pntz, 2, max) # find max for each dimension
-  has_max <- t(vapply(cmpr, function(i) {(maxs[cmpr] %in% pntz[i, cmpr])}, numeric(length(cmpr))))
+  has_max <- t(vapply(1:np, function(i) {(maxs[cmpr] %in% pntz[i, cmpr])}, numeric(nc)))
   max_pos <- which(has_max == 1, arr.ind = TRUE)
   mask <- has_max[max_pos[which(duplicated(max_pos[ , "row"])), "row"], ] #Pozor, kaj če jih je več?!!
   num_max <- rowSums(has_max)
   if(any(num_max > 1)) {
-    tmp <- pntz[num_max > 1, ]
+    tmp <- pntz[num_max > 0, ]
     pntz[num_max > 1, ] <- 0
-    return(rbind(tmp, find_level_max(pntz, mask)))
+    addit <-  decide(find_level_max(pntz, mask))
+    tmp <- rbind(tmp, addit)
+    return(tmp)
   } else {
     return(pntz[num_max == 1, ])
   }
@@ -104,26 +119,16 @@ find_all_max <- function(pntz) {
     }
   }
   
-  dimz <- ncol(pntz)
-  np <- nrow(pntz)
-  tmp_pntz <- pntz
-  mask <- rep(1, dimz)
-  repeat {
-    maxs <- apply(tmp_pntz, 2, max) # find max for each dimension
-    has_max <- t(vapply(1:np, function(i) {sum(maxs[1:dimz] %in% tmp_pntz[i, ])}, numeric(1)))
-    if (all(has_max < 2)) break
-    else{
-      tmp_pntz[has_max > 1, ] <- 0 # To moraš še rešiti
-    }
-  }
-  
-  skln <- pntz[which(has_max == 1), ]
 
-  skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
+  skln <-find_level_max(pntz)
+  
+  skln_nrm <- apply(skln, 1, vec_norm)
+
   max_max <- vapply(1:dimz, function(i) {
     max(skln_nrm[which(skln[, i] == max(skln[, i]))])
   }, double(1))
   skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
+
 }
 
 find_sky_line <- function(pntz, to_origin = FALSE) {
@@ -180,108 +185,46 @@ find_sky_line <- function(pntz, to_origin = FALSE) {
   return(skyline)
 }
 
-#' find_hull0 <- function(pntz, to_origin = TRUE) {
-#'   #' Finds the upper convex hull of the data
-#'   
-#'   dimz <- ncol(pntz)
-#'   np <- nrow(pntz)
-#'   vec_norm <- function(i) sqrt(sum(i^2))
-#'   
-#'   if(is.vector(pntz)) {
-#'     pntz <- as.matrix(t(pntz))
-#'   } else {
-#'     pntz <- as.matrix(pntz)
-#'   }
-#'   
-#'   colMin <- apply(pntz, 2, min)
-#'   
-#'   if(to_origin) {
-#'     pntz <- sweep(pntz, 2, colMin)
-#'   }
-#'   skyline <- data.frame(matrix(ncol = dimz, nrow = 0))
-#'   colnames(skyline) <- paste0("x", 1:dimz)
-#'   
-#'   repeat {
-#'     maxs <- apply(pntz, 2, max) # find max for each dimension
-#'     skln <- pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% pntz[i, ])}, logical(1))), ]
-#'     
-#'     skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
-#'     max_max <- vapply(1:dimz, function(i) {
-#'       max(skln_nrm[which(skln[, i] == max(skln[, i]))])
-#'     }, double(1))
-#'     skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
-#'     
-#'     skyline <- rbind(skyline, skln)
-#'     pntz_over <- pntz[!is_it_same_side(pntz, skln), ]
-#'     np <- nrow(pntz_over)
-#'     if (is.null(np)) {
-#'       skyline <- rbind(skyline, pntz_over)
-#'       skyline <- sweep(skyline, 2, colMin, FUN = "+")
-#'       
-#'       return(skyline)
-#'       
-#'     }
-#'     if (np <= dimz) {
-#'       pnt_nrm <- apply(pntz_over, 1, vec_norm)
-#'       top_pnt <- pntz_over[which(pnt_nrm == max(pnt_nrm)), ]
-#'       skyline <- rbind(skyline, top_pnt)
-#'       for (i in 1:dimz) {
-#'         tmp <- !is_it_same_side(pntz_over, rbind(skln[-i, ], top_pnt))
-#'         if (sum(tmp) > 0) skyline <- rbind(skyline, tmp)
-#'       }
-#'       skyline <- sweep(skyline, 2, colMin, FUN = "+")
-#'       
-#'       return(skyline)
-#'       
-#'     } else {
-#'       pntz <- pntz_over
-#'     }
-#'   }
-#'   
-#'   skyline <- sweep(skyline, 2, colMin, FUN = "+")
-#'   return(skyline)
-#' }
-
-find_hull <- function(pntz, to_origin = TRUE) {
+find_hull0 <- function(pntz, to_origin = TRUE) {
   #' Finds the upper convex hull of the data
-  
+
   dimz <- ncol(pntz)
   np <- nrow(pntz)
   vec_norm <- function(i) sqrt(sum(i^2))
-  
+
   if(is.vector(pntz)) {
     pntz <- as.matrix(t(pntz))
   } else {
     pntz <- as.matrix(pntz)
   }
-  
+
   colMin <- apply(pntz, 2, min)
-  
+
   if(to_origin) {
     pntz <- sweep(pntz, 2, colMin)
   }
   skyline <- data.frame(matrix(ncol = dimz, nrow = 0))
   colnames(skyline) <- paste0("x", 1:dimz)
-  
+
   repeat {
     maxs <- apply(pntz, 2, max) # find max for each dimension
     skln <- pntz[which(vapply(1:np, function(i) {any(maxs[1:dimz] %in% pntz[i, ])}, logical(1))), ]
-    
+
     skln_nrm <- apply(skln, 1, vec_norm) # fast and dirty norms
     max_max <- vapply(1:dimz, function(i) {
       max(skln_nrm[which(skln[, i] == max(skln[, i]))])
     }, double(1))
     skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
-    
+
     skyline <- rbind(skyline, skln)
     pntz_over <- pntz[!is_it_same_side(pntz, skln), ]
     np <- nrow(pntz_over)
     if (is.null(np)) {
       skyline <- rbind(skyline, pntz_over)
       skyline <- sweep(skyline, 2, colMin, FUN = "+")
-      
+
       return(skyline)
-      
+
     }
     if (np <= dimz) {
       pnt_nrm <- apply(pntz_over, 1, vec_norm)
@@ -292,14 +235,14 @@ find_hull <- function(pntz, to_origin = TRUE) {
         if (sum(tmp) > 0) skyline <- rbind(skyline, tmp)
       }
       skyline <- sweep(skyline, 2, colMin, FUN = "+")
-      
+
       return(skyline)
-      
+
     } else {
       pntz <- pntz_over
     }
   }
-  
+
   skyline <- sweep(skyline, 2, colMin, FUN = "+")
   return(skyline)
 }
