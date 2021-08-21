@@ -122,10 +122,13 @@ find_all_max <- function(pntz) {
 
   skln <-find_level_max(pntz)
   
+  if(any(duplicated(skln)))
+    dbl <- which(skln == skln[which(duplicated(skln))])
+  
   skln_nrm <- apply(skln, 1, vec_norm)
-
+  
   max_max <- vapply(1:dimz, function(i) {
-    max(skln_nrm[which(skln[, i] == max(skln[, i]))])
+    max(skln_nrm[ which(skln[, i] == max(skln[, i]))])
   }, double(1))
   skln <- skln[vapply(skln_nrm, function (i) {i %in% max_max }, logical(1)), ]
 
@@ -144,8 +147,6 @@ find_sky_line <- function(pntz, to_origin = FALSE) {
   
   dimz <- ncol(pntz)
   np <- nrow(pntz)
-  
-  vec_norm <- function(i) sqrt(sum(i^2)) # drop(i %*% i) but faster
   
   if(to_origin) {
     colMin <- apply(pntz, 2, min)
@@ -255,9 +256,17 @@ wrap_gift <- function(pntz) {
 test2 <- matrix(c(2, 7, 3, 9, 4, 3, 5, 8, 6, 4, 6, 7, 6, 7.5, 7, 5, 7, 7, 8, 6, 9, 2), ncol = 2, byrow = TRUE)
 
 p <- read.csv2("data/tek_onako.csv")
-pntz <- unique(p[, 1:4])
+pntz <- scale(unique(p[, 1:4]), scale = FALSE)
+
+positive <- function(x) all(x > 0)
+pntz <- pntz[apply(pntz, 1, positive), ]
+
+
+pntz <- read.csv2("data/test-pntz0.csv")
 dimz <- ncol(pntz)
 np <- nrow(pntz)
+
+print(find_all_max(pntz))
 
 find_sky_line(test2)
 find_hull(test2)
