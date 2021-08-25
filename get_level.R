@@ -1,6 +1,12 @@
 library(geometry)
 library(matrixcalc)
 
+############################################################################
+############################################################################
+############# >> , drop = FALSE] PREPREČI SPREMEMBO V VEKTOR  << ###########
+############################################################################
+############################################################################
+
 hull_algo <- function(p_hull_pntz) {
   convhulln(p_hull_pntz, options = "Tv", output.options = NULL,
             return.non.triangulated.facets = FALSE)
@@ -39,10 +45,17 @@ put_zeros <- function(pntz, drop, mask) { ######################################
   pntz
 }
 
-decide <- function(levl) {
+decide <- function(levl, give = "one") {
+  #' Decide which vector (row) has the highest norm.
+  #' It can give the longest vector, or all but the shortest vector.
+
   nrm <- sqrt(rowSums(levl^2)) # sqrt(drop(i %*% i)) but faster
-  delt <- which.max(nrm)
-  levl <- levl[delt, ]
+  switch(give,
+         all = {delt <- which.min(nrm)
+         levl <- levl[-delt, , drop = FALSE]},
+         one = {delt <- which.max(nrm)
+         levl <- levl[delt, , drop = FALSE]}
+  )
 }
 
 change_position <- function(tmp_pntz, in_position) {
@@ -91,10 +104,10 @@ get_level <- function(pntz) {
       pntz <- put_zeros(pntz, to_zero, has_max[to_zero, ])
       # num_max <- drop_rows_one(num_max, drop)
     } else {
-      for_levl <- pntz[which(num_max == 1), ]
+      for_levl <- pntz[which(num_max == 1), , drop = FALSE]
     }
     
-    if (!is.matrix(for_levl)) for_levl <- t(as.matrix(for_levl))
+    # if (!is.matrix(for_levl)) for_levl <- t(as.matrix(for_levl))
     #..........................................................................#
     # Počisti dvojnike
     #..........................................................................#
@@ -103,12 +116,13 @@ get_level <- function(pntz) {
     #   for_levl <- decide(for_levl[dbl, ])
     # }
     
-    if (nrow(levl) + nrow(for_levl) > dimz && nrow(for_levl) > 1) {
-      for_levl <- decide(for_levl)
-    }
     levl <- rbind(levl, for_levl)
     levl <- levl[!duplicated(levl), ]
-    if (!is.matrix(levl)) levl <- t(as.matrix(levl))
+    while (nrow(levl) > dimz) {
+      levl <- decide(levl, give = "all")
+    }
+    
+    # if (!is.matrix(levl)) levl <- t(as.matrix(levl))
     if (nrow(levl) > dimz) {
       maxs <- apply(levl, 2, max) # find max for each dimension
       levl <- levl[vapply(1:nrow(levl), function(i) {any(maxs %in% pntz[i, ])}, numeric(1)), ]
@@ -117,15 +131,15 @@ get_level <- function(pntz) {
     
     dbl <- unlist(apply(levl, 2, function(x) {which(x == x[which(duplicated(x))])})) 
     if(length(dbl) > 0){
-      levl <- rbind(levl, decide(levl[dbl, ]))
-      levl <- levl[-dbl, ]
+      levl <- rbind(levl, decide(levl[dbl, , drop = FALSE]))
+      levl <- levl[-dbl, , drop = FALSE]
       levl
     }
     
     #..........................................................................#
     # Popravi vektor v matriko
     #..........................................................................#
-    if (!is.matrix(pntz)) pntz <- t(as.matrix(pntz))
+    # if (!is.matrix(pntz)) pntz <- t(as.matrix(pntz)) 
     
     #..........................................................................#
     np <- nrow(pntz)
