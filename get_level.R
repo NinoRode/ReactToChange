@@ -278,9 +278,10 @@ build_hull <- function(build_p_hull) {
   list(tst, p_hull_pntz)
 }
 
-# p <- as.data.frame(matrix(rnorm(10000), ncol = 100))
-# pntz <- p[, 1:4]
-pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm.csv", row.names = 1)
+p <- as.data.frame(matrix(rnorm(10000), ncol = 100))
+pntz <- p[, 1:8]
+
+# pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm.csv", row.names = 1)
 
 p_hull_pntz <- build_p_hull(pntz)
 p_hull_pntz

@@ -302,7 +302,7 @@ build_hull <- function(build_p_hull) {
 # 
 # p <- read.csv2("data/tek_onako.csv")
 
-p <- data.frame("x1" = rnorm(10000), "x2" = rnorm(10000))
+p <- data.frame("x1" = rnorm(100000), "x2" = rnorm(100000))
 p <- as.data.frame(matrix(rnorm(10000), ncol = 100))
 pntz <- p[, 1:5]
 # 
