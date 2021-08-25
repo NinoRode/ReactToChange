@@ -25,6 +25,20 @@ drop_rows_one <- function(pntz, rows = NULL) {
   )
 }
 
+put_zeros <- function(pntz, drop, mask) { ######################################### debug
+  
+  if (!is.matrix(mask)) {mask <- t(as.matrix(mask))}
+  sapply (1:length(drop), function (i) 
+    {zero_candidates <- which(mask[i, ] == 1) 
+    to_zero <- sample(zero_candidates, length(zero_candidates) - 1)
+    # print(c(drop[i], to_zero))
+    pntz[drop[i], to_zero] <<- 0
+    # print(pntz)
+    }
+  )
+  pntz
+}
+
 decide <- function(levl) {
   nrm <- sqrt(rowSums(levl^2)) # sqrt(drop(i %*% i)) but faster
   delt <- which.max(nrm)
@@ -71,9 +85,10 @@ get_level <- function(pntz) {
     # Pripravi večkratne zgornje in jih očisti iz podatkov 
     #..........................................................................#
     if (any(num_max > 1)){
-      drop <- which(num_max > 1)
-      for_levl <- (pntz[drop, ])
-      pntz <- drop_rows_one(pntz, drop)
+      to_zero <- which(num_max > 1)
+      for_levl <- (pntz[to_zero, ]) ###################################### upam, da dbl očisti to
+      
+      pntz <- put_zeros(pntz, to_zero, has_max[to_zero, ])
       # num_max <- drop_rows_one(num_max, drop)
     } else {
       for_levl <- pntz[which(num_max == 1), ]
@@ -102,7 +117,9 @@ get_level <- function(pntz) {
     
     dbl <- unlist(apply(levl, 2, function(x) {which(x == x[which(duplicated(x))])})) 
     if(length(dbl) > 0){
-      levl <- decide(levl[dbl, ])
+      levl <- rbind(levl, decide(levl[dbl, ]))
+      levl <- levl[-dbl, ]
+      levl
     }
     
     #..........................................................................#
@@ -279,7 +296,7 @@ build_hull <- function(build_p_hull) {
 }
 
 p <- as.data.frame(matrix(rnorm(10000), ncol = 100))
-pntz <- p[, 1:8]
+pntz <- p[, 1:5]
 
 # pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm.csv", row.names = 1)
 
