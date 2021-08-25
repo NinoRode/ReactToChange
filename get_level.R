@@ -291,6 +291,6 @@ sort(unique(as.vector(sts)))
 
 tst <- (hull_algo(pntz))
 tst
-
+ 
 sort(unique(as.vector(tst)))
 sort(unique(as.vector(sts)))
