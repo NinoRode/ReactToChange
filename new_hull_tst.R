@@ -119,7 +119,7 @@ get_level <- function(pntz, prev_level) {
     
     levl <- rbind(for_levl, prev_level[from_prev, ]) ############################# PAZI! so zastopane prave dimenzije?
     
-    to_drop <- apply(levl, 1, which(all(apply(pntz, 1, function(x) x > p))))
+    to_drop <- apply(levl, 1, function(p) {which(all(apply(pntz, 1, function(x) x == p)))} )
     # pntz <- drop_rows_one(pntz, which(pntz %in% levl)) # to verjetno ne bo delalo, which mora po vrsticah
     pntz <- drop_rows_one(pntz, to_drop)
     if (!is.matrix(pntz)) pntz <- t(as.matrix(pntz))
@@ -264,8 +264,8 @@ build_p_hull <- function(pntz) {
   cnter <- colMeans(pntz)
   tmp_pntz <- scale(pntz, center = cnter, scale = FALSE)
   plot(tmp_pntz)
-  
-  first_max  <- get_level(tmp_pntz) # find points with maximum on each dimension
+  dimz <- ncol(tmp_pntz)
+  first_max  <- get_level(tmp_pntz, matrix(0, nrow = dimz, ncol = dimz)) # find points with maximum on each dimension
   mc <- max.col(first_max)
   first_max <- first_max[mc, ]
   # p_hull_pntz <- first_max
@@ -275,7 +275,7 @@ build_p_hull <- function(pntz) {
   points(tmp,pch = 19)
   
   tmp_pntz <- -tmp_pntz
-  first_min  <- get_level(tmp_pntz) # find points with minimum on each dimension
+  first_min  <- get_level(tmp_pntz, matrix(0, nrow = dimz, ncol = dimz)) # find points with minimum on each dimension
   first_min <- first_min[max.col(first_min), ]
   # p_hull_pntz <- rbind(p_hull_pntz, -first_min)
   
