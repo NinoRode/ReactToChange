@@ -115,11 +115,15 @@ get_level <- function(pntz, prev_level) {
     #   for_levl <- decide(for_levl[dbl, ])
     # }
     
-    from_prev <- (nrow(for_levl) + 1):dimz
+    from_prev <- (nrow(for_levl) + 1):dimz ####################################### PAZI! so zastopane prave dimenzije? 
     
-    levl <- rbind(for_levl, prev_level[from_prev, ])
+    levl <- rbind(for_levl, prev_level[from_prev, ]) ############################# PAZI! so zastopane prave dimenzije?
     
-    pntz <- drop_rows_one(pntz, which(pntz %in% levl))
+    to_drop <- apply(levl, 1, which(all(apply(pntz, 1, function(x) x > p))))
+    # pntz <- drop_rows_one(pntz, which(pntz %in% levl)) # to verjetno ne bo delalo, which mora po vrsticah
+    pntz <- drop_rows_one(pntz, to_drop)
+    if (!is.matrix(pntz)) pntz <- t(as.matrix(pntz))
+    
     # levl <- levl[!duplicated(levl), ]
     # while (nrow(levl) > dimz) {
     #   levl <- decide(levl, give = "all")
