@@ -158,12 +158,22 @@ get_level <- function(pntz, prev_level) {
 }
 
 find_points_over <- function(pntz, one_level) {
-  collin_test <- qr(one_level)
-  while (collin_test$rank < ncol(one_level)) {
   
+  colz <- ncol(one_level)
+  
+  collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
+  
+  while (collin_test$rank < ncol(one_level)) {
+    # replace collinear point with new one 
+    # OR
+    # perturb the collinear point
+    problematic <- collin_test$pivot[seq(collin_test$rank + 1, colz)]
+    
+    one_level[-problematic, ] <- one_level[-problematic, ] + 0.0001 * (runif(colz, ) - 0.5)
+    collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
   }
   
-  pntz[is_it_same_side(pntz, one_level, other = TRUE), ]
+  pntz <- pntz[is_it_same_side(pntz, one_level, other = TRUE), ]
 }
 
 is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
