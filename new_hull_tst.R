@@ -12,6 +12,14 @@ hull_algo <- function(p_hull_pntz) {
             return.non.triangulated.facets = FALSE)
 }
 
+# vector_norm <- function(i) sqrt(sum(i^2)) # vector norm: as sqrt(drop(i %*% i)), but faster
+vector_norm <- function(i) {
+  if(is.matrix(i))
+    sqrt(rowSums(i^2)) # vector norms: as sqrt(drop(i %*% i)), but faster
+  else
+    sqrt(sum(i^2))
+}
+
 drop_rows_one <- function(pntz, rows = NULL) {
   
   dim_num <- length(dim(pntz)) + 1
@@ -26,30 +34,30 @@ drop_rows_one <- function(pntz, rows = NULL) {
   switch(dim_num,
          pntz <- pntz[-rows],
          pntz <- pntz[-rows],
-         pntz <- pntz[-rows, ], 
-         pntz <- pntz[-rows, , ] 
+         pntz <- pntz[-rows, , drop = FALSE], 
+         pntz <- pntz[-rows, , , drop = FALSE] 
   )
 }
 
-put_zeros <- function(pntz, drop, mask) { ######################################### debug
-  
-  if (!is.matrix(mask)) {mask <- t(as.matrix(mask))}
-  sapply (1:length(drop), function (i) 
-    {zero_candidates <- which(mask[i, ] == 1) 
-    to_zero <- sample(zero_candidates, length(zero_candidates) - 1)
-    # print(c(drop[i], to_zero))
-    pntz[drop[i], to_zero] <<- 0
-    # print(pntz)
-    }
-  )
-  pntz
-}
+# put_zeros <- function(pntz, drop, mask) { ######################################### debug
+#   
+#   if (!is.matrix(mask)) {mask <- t(as.matrix(mask))}
+#   sapply (1:length(drop), function (i) 
+#     {zero_candidates <- which(mask[i, ] == 1) 
+#     to_zero <- sample(zero_candidates, length(zero_candidates) - 1)
+#     # print(c(drop[i], to_zero))
+#     pntz[drop[i], to_zero] <<- 0
+#     # print(pntz)
+#     }
+#   )
+#   pntz
+# }
 
 decide <- function(levl, give = "one") {
   #' Decide which vector (row) has the highest norm.
   #' It can give the longest vector, or all but the shortest vector.
 
-  nrm <- sqrt(rowSums(levl^2)) # sqrt(drop(i %*% i)) but faster
+  nrm <- vector_norm(levl) # sqrt(drop(i %*% i)) but faster
   switch(give,
          all = {delt <- which.min(nrm)
          levl <- levl[-delt, , drop = FALSE]},
@@ -70,15 +78,15 @@ get_level <- function(pntz, prev_level) {
   dimz <- ncol(pntz)
   np <- nrow(pntz)
   levl <- matrix(numeric(), nrow = 0, ncol = dimz)
-  mask <- NULL
+  # mask <- NULL
   
-  while (nrow(levl) < dimz && np > 0) {
+  while (np > 0) {
     
     # print(nrow(levl)) ########################################################## debug
     #..........................................................................#
     # Najdi točke z največjo vednostjo ("zgornje") za vsako dimenzijo
     #..........................................................................#
-    if(is.null(mask) || sum(mask) == 0) mask <- rep(1, dimz)
+    # if(is.null(mask) || sum(mask) == 0) mask <- rep(1, dimz)
     
     # cmpr <- 1 : dimz * mask
     # 
@@ -114,12 +122,13 @@ get_level <- function(pntz, prev_level) {
     # if(length(dbl) > 0){
     #   for_levl <- decide(for_levl[dbl, ])
     # }
-    
-    from_prev <- (nrow(for_levl) + 1):dimz ####################################### PAZI! so zastopane prave dimenzije? 
-    
-    levl <- rbind(for_levl, prev_level[from_prev, ]) ############################# PAZI! so zastopane prave dimenzije?
-    
-    to_drop <- apply(levl, 1, function(p) {which(all(apply(pntz, 1, function(x) x == p)))} )
+    if (nrow(for_levl) < dimz) {
+      from_prev <- (nrow(for_levl) + 1):dimz ################################### PAZI! so zastopane prave dimenzije? 
+      levl <- rbind(for_levl, prev_level[from_prev, , drop = FALSE]) ############# mislim, da so, saj jih nekje uredim
+    } else {
+      levl <- for_levl
+    }
+    to_drop <- which(num_max > 0)
     # pntz <- drop_rows_one(pntz, which(pntz %in% levl)) # to verjetno ne bo delalo, which mora po vrsticah
     pntz <- drop_rows_one(pntz, to_drop)
     if (!is.matrix(pntz)) pntz <- t(as.matrix(pntz))
@@ -163,17 +172,26 @@ find_points_over <- function(pntz, one_level) {
   
   collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
   
-  while (collin_test$rank < ncol(one_level)) {
+  while (collin_test$rank < colz) {
     # replace collinear point with new one 
     # OR
     # perturb the collinear point
     problematic <- collin_test$pivot[seq(collin_test$rank + 1, colz)]
-    
-    one_level[-problematic, ] <- one_level[-problematic, ] + 0.0001 * (runif(colz, ) - 0.5)
+    problems <- one_level[problematic, , drop = FALSE]
+    perturbation <- apply(problems, 1, function (x) {
+      nrm <-vector_norm(x)
+      if (nrm == 0)
+        0.0001 * (runif(colz) - 0.5)
+      else
+        0.01 * (runif(colz) - 0.5) * nrm
+      })
+    one_level[problematic, ] <- problems + t(perturbation)
     collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
+    print(collin_test$rank)
+    print(problems)
   }
   
-  pntz <- pntz[is_it_same_side(pntz, one_level, other = TRUE), ]
+  pntz <- pntz[is_it_same_side(pntz, one_level, other = TRUE), , drop = FALSE] ################## qr.solve?
 }
 
 is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
@@ -326,10 +344,11 @@ build_hull <- function(build_p_hull) {
   list(tst, p_hull_pntz)
 }
 
-p <- as.data.frame(matrix(rnorm(10000), ncol = 100))
-pntz <- p[, 1:5]
+# p <- as.data.frame(matrix(rnorm(10000), ncol = 100))
+# pntz <- p[, 1:5]
 
 # pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm.csv", row.names = 1)
+pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm2.csv", row.names = 1)
 
 p_hull_pntz <- build_p_hull(pntz)
 p_hull_pntz
