@@ -80,7 +80,7 @@ get_level <- function(pntz, prev_level) {
   levl <- matrix(numeric(), nrow = 0, ncol = dimz)
   # mask <- NULL
   
-  while (np > 0) {
+  # while (np > 0) {
     
     # print(nrow(levl)) ########################################################## debug
     #..........................................................................#
@@ -158,9 +158,9 @@ get_level <- function(pntz, prev_level) {
     # if (!is.matrix(pntz)) pntz <- t(as.matrix(pntz)) 
     
     #..........................................................................#
-    np <- nrow(pntz)
-    
-  }
+  #   np <- nrow(pntz)
+  #   
+  # }
   
   
   levl # Procedura, ki kliče, mora preveriti, če je levl kompleten
@@ -170,26 +170,25 @@ find_points_over <- function(pntz, one_level) {
   
   colz <- ncol(one_level)
   
-  collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
-  
-  while (collin_test$rank < colz) {
-    # replace collinear point with new one 
-    # OR
-    # perturb the collinear point
-    problematic <- collin_test$pivot[seq(collin_test$rank + 1, colz)]
-    problems <- one_level[problematic, , drop = FALSE]
-    perturbation <- apply(problems, 1, function (x) {
-      nrm <-vector_norm(x)
-      if (nrm == 0)
-        0.0001 * (runif(colz) - 0.5)
-      else
-        0.01 * (runif(colz) - 0.5) * nrm
-      })
-    one_level[problematic, ] <- problems + t(perturbation)
-    collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
-    print(collin_test$rank)
-    print(problems)
-  }
+  collin_test <- qr(one_level, tol=1e-10, LAPACK = FALSE)
+  # 
+  # while (collin_test$rank < colz) {
+  #   # replace collinear point with new one 
+  #   # OR
+  #   # perturb the collinear point
+  #   print(one_level) ############################################################################ debug
+  #   problematic <- collin_test$pivot[seq(collin_test$rank + 1, colz)]
+  #   problems <- one_level[problematic, , drop = FALSE]
+  #   perturbation <- apply(problems, 1, function (x) {
+  #     nrm <-vector_norm(x)
+  #     if (nrm == 0)
+  #       0.0001 * (runif(colz) - 0.5)
+  #     else
+  #       0.01 * (runif(colz) - 0.5) * nrm
+  #     })
+  #   one_level[problematic, ] <- problems + t(perturbation)
+  #   collin_test <- qr(one_level, tol=1e-9, LAPACK = FALSE)
+  # }
   
   pntz <- pntz[is_it_same_side(pntz, one_level, other = TRUE), , drop = FALSE] ################## qr.solve?
 }
@@ -220,6 +219,7 @@ is_it_same_side <- function(pntz, facet, eye = NULL, other = FALSE) {
   }
   
   f <- solve (facet, rep(1, ncol(facet)))
+  print(f) ######################################################################debug
   
   pos <- vapply(1:nrow(pntz), function(x) 
   {round(t(pntz[x, ] - facet[1, ]) %*% f, 12)}, double(1))
@@ -349,6 +349,7 @@ build_hull <- function(build_p_hull) {
 
 # pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm.csv", row.names = 1)
 pntz <- read.csv2("/home/nino/git/div_hull/data/test_data_prblm2.csv", row.names = 1)
+pntz <- pntz[1:30, 1:2]
 
 p_hull_pntz <- build_p_hull(pntz)
 p_hull_pntz
