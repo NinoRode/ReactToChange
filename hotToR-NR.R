@@ -9,6 +9,8 @@ library(tidyxl)
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
 
+OAsistenti <- list("Lucija Metelko", "Nino Rode")
+
 EasterDate <- function (year) {
   #' "A New York correspondent" to the journal Nature in 1876 algorithm,
   #' also called "Meeus/Jones/Butcher" algorithm
@@ -549,7 +551,7 @@ ui = shinyUI(fluidPage(
            h2(textOutput("title")))),
   fluidRow(
     h3(column(6, offset = 2, allign = "center",
-           selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Nino Rode"))))),
+           selectInput("OA", "Izberi asistentko:", choices = OAsistenti)))),
   fluidRow(
     column(4,
            dateInput("teden", "Izberi teden:",

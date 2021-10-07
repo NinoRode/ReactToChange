@@ -549,7 +549,7 @@ ui = shinyUI(fluidPage(
            h2(textOutput("title")))),
   fluidRow(
     h3(column(6, offset = 2, allign = "center",
-           selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Nino Rode"))))),
+           selectInput("OA", "Izberi asistentko:", choices = list("Lucija Metelko", "Ana Ljubi"))))),
   fluidRow(
     column(4,
            dateInput("teden", "Izberi teden:",
