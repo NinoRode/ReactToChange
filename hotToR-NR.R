@@ -9,7 +9,9 @@ library(tidyxl)
 # tell shiny to log all reactivity
 options(shiny.reactlog = TRUE)
 
-OAsistenti <- list("Lucija Metelko", "Nino Rode")
+# OAsistenti <- list("Lucija Metelko", "Nino Rode")
+
+OAsistenti <- as.list(readLines("data/OA.txt")) # Read OA names from file
 
 EasterDate <- function (year) {
   #' "A New York correspondent" to the journal Nature in 1876 algorithm,
